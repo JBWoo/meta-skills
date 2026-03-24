@@ -1,0 +1,4 @@
+interface:
+  display_name: "Autoresearch"
+  short_description: "Eval-driven optimization for skills and pipelines"
+  default_prompt: "Use $autoresearch to benchmark this skill with binary and comparative evals, then keep only mutations that measurably improve it."
