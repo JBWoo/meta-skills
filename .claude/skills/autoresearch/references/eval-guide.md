@@ -2,6 +2,18 @@
 
 How to write eval criteria that actually improve your skills instead of giving you false confidence.
 
+## Table of Contents
+
+1. [The golden rule](#the-golden-rule) — every eval must be binary
+2. [Assertion category taxonomy](#the-assertion-category-taxonomy) — 6 categories to pull from
+3. [Converting subjective criteria](#converting-subjective-criteria-to-binary-checks) — decompose vibes into checks
+4. [Good evals vs bad evals](#good-evals-vs-bad-evals) — examples by skill type
+5. [Common mistakes](#common-mistakes) — too many, too narrow, overlapping
+6. [evals.json schema](#evalsjson-schema) — structured format for automation
+7. [The eval template](#the-eval-template) — copy-paste formats
+8. [Generating evals with AI](#asking-the-agent-to-generate-evals-for-you) — prompt template
+9. [False positive tracking](#false-positive-tracking-outer-loop--periodic) — when evals lie
+
 ---
 
 ## the golden rule
@@ -320,3 +332,29 @@ Analyze this SKILL.md and create an evals.json file.
 ```
 
 Review the generated evals before running them. The human review phase in the main autoresearch loop will also catch any evals that don't work in practice.
+
+---
+
+## false positive tracking (outer loop — periodic)
+
+> Run this only when real-world performance data is available.
+
+The inner loop optimizes the skill against eval criteria. But what if the eval criteria themselves are wrong? A high eval score with poor real-world results = **false positive**.
+
+| Eval Score | Real Performance | Meaning | Action |
+|---|---|---|---|
+| High | High | Evals are working | Keep evals |
+| High | Low | **False positive** | Fix evals |
+| Low | High | Missing success pattern | Add new eval criteria |
+| Low | Low | Correctly filtered | Keep evals |
+
+**When to run:** After 10+ real-world outputs with performance data. Monthly review, not after every experiment.
+
+**How to run:**
+1. Compare eval winners against real performance
+2. Identify false positives: high eval score but low real performance
+3. Analyze what the evals missed
+4. Update eval criteria and log with `"source": "false-positive-correction"`
+5. Re-run the inner loop with updated evals
+
+**Caution:** Need minimum 10 data points. Account for external factors (SEO changes, seasonality). Blog content has 1-2 week lag; social media is faster (24-48h).

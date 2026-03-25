@@ -13,15 +13,9 @@ This skill adapts Andrej Karpathy's autoresearch methodology (autonomous experim
 
 ## the core job
 
-Take any existing skill, define what "good output" looks like as eval checks, then run a loop that:
+Run a loop: generate outputs → score against evals → mutate the skill → keep improvements → repeat.
 
-1. Generates outputs from the skill using test inputs
-2. Scores every output against the eval criteria (binary checks for rules + comparative checks for quality)
-3. Mutates the skill — not just the prompt text, but also reference files, templates, and design assets
-4. Keeps mutations that improve the score, discards the rest
-5. Repeats until the score ceiling is hit or the user stops it
-
-**Output:** An improved SKILL.md + `results.tsv` log + `changelog.md` of every mutation attempted + `research-log.json` of meaningful direction shifts + a live HTML dashboard.
+**Output:** An improved SKILL.md + `results.tsv` + `changelog.md` + `research-log.json` + live HTML dashboard.
 
 ---
 
@@ -60,138 +54,67 @@ For **pipeline mode**, read `references/pipeline-guide.md` and map the full data
 
 ## step 2: build the eval suite
 
-Convert the user's eval criteria into a structured test using two or three eval types.
+Convert the user's eval criteria into a structured test. See `references/eval-guide.md` for full templates, examples, and the assertion taxonomy.
 
-### Binary evals — objective rule compliance
+**Three eval types:**
 
-Use these for hard rules that have a clear yes/no answer.
+- **Binary evals** — objective rule compliance (yes/no). Use for hard rules.
+- **Comparative evals** — subjective quality improvement. Judge whether a mutation improved quality along a specific dimension (win=1, tie=0.5, loss=0). Every skill should have at least 1-2 comparative evals alongside binary checks — binary alone plateaus quickly.
+- **Fidelity evals** — pipeline stage consistency (pipeline mode only). See `references/pipeline-guide.md`.
 
-```
-EVAL [number]: [Short name]
-Type: binary
-Question: [Yes/no question about the output]
-Pass condition: [What "yes" looks like — be specific]
-Fail condition: [What triggers a "no"]
-```
+**Scoring:** Binary: pass=1, fail=0. Comparative: win=1, tie=0.5, loss=0. Fidelity: pass=1, fail=0. Total = sum of all. `max_score = total assertions x runs per experiment`.
 
-### Comparative evals — subjective quality improvement
+### eval 유형 계층 (결정론성 높은 순)
 
-Binary evals plateau once the skill follows the rules — they can't tell you if one output is *better* than another. Comparative evals judge whether a mutation actually improved quality along a specific dimension.
+eval을 작성할 때 가능한 한 상위 계층을 먼저 사용하라. LLM 판정은 마지막 수단이다.
 
-```
-EVAL [number]: [Short name]
-Type: comparative
-Dimension: [One specific quality aspect to compare]
-Method: Generate baseline output and mutated output from the same prompt.
-        Compare side-by-side (screenshots for visual, text diff for prose/code).
-        Agent picks the winner on this dimension.
-Pass condition: Mutated version wins or ties.
-Fail condition: Baseline version is clearly better.
-```
+**Tier 1 — 결정론적 체크 (최우선)**
+grep, regex, 파일 존재 여부, JSON/YAML 파싱 성공, 글자 수 범위, 필수 섹션 존재 등.
+동일 입력 → 항상 동일 결과. 가장 신뢰할 수 있다.
 
-Any skill with subjective quality can benefit from comparative evals:
+예시:
+- "출력에 ## 요약 섹션이 있는가?" → `grep -q "^## 요약" output.md`
+- "JSON으로 파싱 가능한가?" → `python -c "import json; json.load(open('output.json'))"`
+- "500자 이상 2000자 이하인가?" → `wc -c output.txt | awk '{exit ($1<500 || $1>2000)}'`
 
-| Skill type | Example comparative dimensions |
-|-----------|-------------------------------|
-| Visual/design | Layout composition, color usage, whitespace balance, visual variety |
-| Writing | Tone consistency, opening hook strength, paragraph flow |
-| Code generation | Readability, idiomatic patterns, naming quality |
-| Documentation | Information architecture, example quality, scannability |
+**Tier 2 — 구조 검증**
+출력의 구조적 특성을 프로그래밍적으로 검증. 약간의 파싱 로직이 필요하지만 여전히 결정론적.
 
-### Fidelity evals — pipeline stage consistency (pipeline mode only)
+예시:
+- 마크다운 헤딩이 계층 순서를 지키는가? (H1 → H2 → H3)
+- 테이블의 컬럼 수가 모든 행에서 일치하는가?
+- 코드 블록에 언어 지정이 되어 있는가?
 
-For multi-skill pipelines, fidelity evals measure how accurately the downstream output preserves the upstream output's quality. See `references/pipeline-guide.md` for the full template and common fidelity dimensions.
+**Tier 3 — LLM-as-judge (최후 수단)**
+내용의 질, 톤, 정확성 등 프로그래밍적 검증이 불가능한 항목에만 사용.
 
-### Comparative eval rules
-
-- Each eval tests ONE dimension — don't bundle "is it better overall?"
-- The agent must see both outputs simultaneously — never judge one in isolation
-- A tie is a pass (mutation didn't hurt this dimension)
-- 3-5 comparative evals alongside the binary evals
-
-**Agent-as-Judge for comparative evals:**
-
-For visual outputs (slides, UI, designs):
-1. Capture screenshots of baseline and mutated outputs
-2. Read both screenshots using the Read tool (multimodal) in a single evaluation step
-3. Judge each dimension one at a time: state the dimension, describe what you see in each, verdict (A wins / B wins / TIE)
-4. Randomize which output is labeled A/B across experiments to avoid position bias
-
-For text/code outputs: read both inline, compare on the stated dimension, same verdict format.
-
-**Judging discipline:**
-- Judge each dimension independently — don't let one strong dimension bias others
-- If you genuinely can't decide, it's a TIE (counts as pass)
-- Log the verdict and reasoning in changelog.md
-
-**Scoring:** Binary: pass=1, fail=0. Comparative: win=1, tie=0.5, loss=0. Fidelity: pass=1, fail=0. Total = sum of all.
+**목표: 전체 eval의 최소 50%를 Tier 1-2로 구성하라.** Tier 3만으로 구성된 eval suite는 노이즈가 커서 mutation 효과를 정확히 판별하기 어렵다.
 
 ### Rules for all evals
 
 - Specific enough to be consistent. "Is the text readable?" is too vague. "Are all words spelled correctly with no truncated sentences?" is testable.
 - Not so narrow that the skill games the eval.
-- **Every skill should have at least 1-2 comparative evals alongside binary checks.** Binary evals alone plateau quickly — the most common autoresearch failure mode.
 - Each eval should test something distinct — no overlapping checks.
 
 **Before finalizing, run the 3-question test on each eval:**
 
-1. Could two different agents score the same output and agree? (if not -> tighten)
-2. Could a skill game this eval without actually improving? (if yes -> too narrow)
-3. Does this eval test something the user actually cares about? (if not -> drop it)
-
-See `references/eval-guide.md` for detailed examples, the assertion category taxonomy, and how to convert subjective criteria into testable checks.
-
-**Scoring unit:** Each test prompt has multiple assertions. `max_score = total assertions x runs per experiment`.
+1. Could two different agents score the same output and agree? (if not → tighten)
+2. Could a skill game this eval without actually improving? (if yes → too narrow)
+3. Does this eval test something the user actually cares about? (if not → drop it)
 
 ---
 
 ## step 3: generate the live dashboard
 
-The dashboard is the user's window into the optimization. Without it, auto mode is a black box.
+Before running any experiments, create `autoresearch-[skill-name]/dashboard.html` and open it. See `references/dashboard-guide.md` for the full dashboard spec.
 
-Before running any experiments, create a live HTML dashboard at `autoresearch-[skill-name]/dashboard.html` and open it.
-
-The dashboard must:
-
-- Auto-refresh every 10 seconds (reads from results.json)
-- Show a score progression line chart (experiment on X, pass rate % on Y)
-- Show colored bars per experiment: green=keep, red=discard, blue=baseline, yellow=human-reviewed
-- Show a table of all experiments with: #, score, pass rate, status, description
-- Show per-eval breakdown: which evals pass most/least
-- Show current status: "Running experiment [N]..." or "Awaiting human review" or "Idle"
-
-**If comparative evals are used — add a comparison view** with before/after output pairs and per-dimension verdicts.
-
-Generate as a single self-contained HTML file with inline CSS/JS. Use Chart.js from CDN.
-
-**Serving:** Start a local HTTP server (don't use `file://` — CORS blocks fetch):
-
-```bash
-python -m http.server 8787 --directory autoresearch-[skill-name] &
-```
-
-Open `http://localhost:8787/dashboard.html` immediately. Kill the server when the run is complete.
-
-**Update `results.json`** after every experiment with: skill_name, status, mode, current_experiment, experiments array (id, score, pass_rate, status, description, comparative verdicts), eval_breakdown, and termination_check. When the run finishes, set status to `"complete"`.
+**핵심:** results.json을 fetch하지 말고, 매 실험 후 dashboard.html 내부의 `<script>const RESULTS_DATA = ...;</script>`에 인라인으로 삽입하라. `file://` 프로토콜로 바로 열 수 있으므로 별도 서버 불필요.
 
 ---
 
 ## how to run the target skill
 
-Each experiment requires running the target skill with test inputs and collecting its outputs. Choose the method that fits your setup:
-
-**Method 1: Subagent (recommended).** Use the `Agent` tool to spawn a subagent that executes the skill in the target project's working directory. The subagent inherits the project's CLAUDE.md and skill definitions, so it behaves exactly as a user would experience. Set `cwd` to the target project path in the agent prompt.
-
-```
-Agent(prompt="cd to /path/to/project and run: <test prompt>", subagent_type="general-purpose")
-```
-
-**Method 2: Direct execution.** If the skill can run in the current session (same project), execute it directly — read the skill's CLAUDE.md, follow its workflow, and produce outputs. This is simplest but means you are both the optimizer and the executor, which can bias results.
-
-**Key rules:**
-- Never use external services, APIs, or intermediary servers to run the skill. Run everything locally in Claude Code.
-- Each experiment must start from a clean state — don't let outputs from one experiment leak into the next.
-- If the skill takes longer than 10 minutes per prompt, reduce the test scope (fewer items, simpler sites) rather than increasing timeouts.
+Each experiment requires running the target skill with test inputs. See `references/execution-guide.md` for methods (subagent vs direct execution) and key rules.
 
 ---
 
@@ -206,34 +129,28 @@ Do NOT create a new folder or re-establish baseline. Continue from the previous 
 1. Read `changelog.md` and `research-log.json` to understand what was already tried
 2. Load `results.json` to find the current best score and next experiment number
 3. Read `SKILL.md.baseline` to understand the original starting point
-4. Resume the experiment loop from where it left off — skip directly to step 5 or step 6 as appropriate
-5. New experiment numbers continue from the last one (e.g., if last was exp-7, next is exp-8)
+4. If autoresearch branch exists, `git checkout autoresearch/[skill-name]`
+5. Resume the experiment loop from where it left off — skip directly to step 5 or step 6 as appropriate
+6. New experiment numbers continue from the last one (e.g., if last was exp-7, next is exp-8)
 
-If a new model is being used, also read the research log:
-
-```
-Here is the research log for [SKILL_NAME].
-It documents [N] meaningful revisions over [DAYS] days.
-The last direction was [LATEST_DIRECTION].
-Continue optimizing from this point.
-Avoid repeating approaches that scored poorly (see discarded entries).
-```
+If a new model is being used, also read the research log to continue from the last direction.
 
 ### If the folder does NOT exist → NEW BASELINE
 
 Run the skill AS-IS before changing anything. This is experiment #0.
 
-1. Create working directory: `autoresearch-[skill-name]/` with `runs/baseline/` subdirectory
-2. Create `results.json`, `changelog.md`, `research-log.json`, and `dashboard.html`, then open the dashboard
-3. Back up the original SKILL.md as `SKILL.md.baseline`
-4. Run the skill using the test inputs (see "how to run the target skill" above)
-5. **Copy all outputs into `runs/baseline/<prompt-id>/`** — every artifact the skill produces must be preserved in the runs directory, not just left in the skill's native output location
-6. Score every output against every eval
-7. Record the baseline score and update results.json
+1. Create `autoresearch-[skill-name]/` with `runs/baseline/`
+2. Create `results.json`, `changelog.md`, `research-log.json`, `dashboard.html` → open dashboard
+3. Back up original SKILL.md as `SKILL.md.baseline`
+4. Run the skill with test inputs, copy all outputs into `runs/baseline/<prompt-id>/`
+5. Score every output against every eval, record baseline score
+6. `git checkout -b autoresearch/[skill-name]` (이미 존재하면 `-N` 접미사)
+7. `.gitignore`에 `autoresearch-[skill-name]/` 추가 (로그는 롤백과 독립 누적)
+8. `git add SKILL.md && git commit -m "autoresearch: baseline ([score]/[max])"`
 
-**IMPORTANT:** After establishing baseline, confirm the score with the user before proceeding. If baseline is already 90%+, ask if continued optimization is worth the cost.
+**IMPORTANT:** Baseline 90%+ 이면 계속 최적화할 가치가 있는지 사용자에게 확인.
 
-For prompt rotation strategy and heavy pipeline adaptation, see `references/pipeline-guide.md`.
+For prompt rotation and heavy pipelines, see `references/pipeline-guide.md`.
 
 ---
 
@@ -243,20 +160,17 @@ For prompt rotation strategy and heavy pipeline adaptation, see `references/pipe
 
 The first 3 experiments run with human review. This is where subjective judgment — tone, aesthetic sense, brand fit, personal preference — gets baked into the optimization direction before the autonomous loop takes over.
 
-**Why 3 experiments:**
-- Experiment 1: The biggest, most obvious fix. Human confirms the direction.
-- Experiment 2: Second-priority fix. Human catches taste/tone drift.
-- Experiment 3: Direction established. Human gives final go/no-go for auto mode.
-
 **For each human-reviewed experiment:**
 
 1. **Analyze failures** and form a hypothesis (same as step 6)
 2. **Make ONE change** to SKILL.md
-3. **Run the experiment** and score it
-4. **Present results** showing: the change and why, before/after score, 2-3 sample outputs, keep/discard recommendation
-5. **Ask the user:** "Does this direction feel right?" / "Anything the evals aren't catching?"
-6. **If subjective feedback is given**, note it in changelog.md as `[HUMAN INSIGHT]` and incorporate into SKILL.md. Do NOT add it as a new eval.
-7. **Log the result** with status `human-reviewed`.
+3. **Commit the change:** `git add SKILL.md && git commit -m "autoresearch: [one-line description]"`
+4. **Run the experiment** and score it
+5. **Present results** showing: the change and why, before/after score, 2-3 sample outputs, keep/discard recommendation
+6. **Ask the user:** "Does this direction feel right?" / "Anything the evals aren't catching?"
+7. **If subjective feedback is given**, note it in changelog.md as `[HUMAN INSIGHT]` and incorporate into SKILL.md. Do NOT add it as a new eval.
+8. **Keep or discard** (same rules as step 6). DISCARD → `git reset --hard HEAD~1`
+9. **Log the result** with status `human-reviewed`.
 
 **After 3 human-reviewed experiments (or "go auto"):** Switch to auto mode. Tell the user: "Switching to auto mode. Check the dashboard anytime."
 
@@ -266,88 +180,83 @@ The first 3 experiments run with human review. This is where subjective judgment
 
 This is the core autoresearch loop. Once started, run autonomously until stopped.
 
-**Do not stop between experiments.** Don't pause for confirmation, don't ask "should I continue?". The user chose auto mode because they want you to keep going.
+**NEVER STOP.** 루프가 시작되면 절대로 멈추지 않는다. 확인을 구하지 않는다. "계속할까요?"라고 묻지 않는다. 사용자가 자고 있을 수 있다. 사용자가 컴퓨터 앞에 없을 수 있다. 이 루프는 사용자가 직접 중단하거나 stop condition에 도달할 때까지 무한히 반복된다.
+
+실험 하나당 약 5-10분이면, 하룻밤에 50-100개 실험을 돌릴 수 있다. 사용자는 아침에 일어나서 결과를 확인한다.
 
 **LOOP:**
 
 1. **Analyze failures.** Look at which evals fail most. Read the actual failing outputs. Identify the pattern.
 
-2. **Form a hypothesis.** Pick a mutation at the right level. See `references/mutation-guide.md` for the three mutation levels (L1: prompt rules, L2: reference assets, L3: eval calibration), good/bad mutation examples, bundled mutations, and L1->L2 transition signals.
+2. **Form a hypothesis.** Pick a mutation at the right level. See `references/mutation-guide.md` for the three mutation levels (L1: prompt rules, L2: reference assets, L3: eval calibration), good/bad mutation examples, bundled mutations, and L1→L2 transition signals.
 
 3. **Make the change.** Edit the target file(s) at the chosen mutation level.
 
-4. **Run the experiment.** Execute the skill with the test inputs. **Save all outputs into `runs/exp-N/`** — copy or move every artifact the skill produces (files, screenshots, generated code, etc.) into the experiment's run folder. The skill's own output directory may differ; always copy results into `runs/exp-N/<prompt-id>/` so every experiment is self-contained and comparable. Never leave experiment outputs only in the skill's native output directory.
+4. **Commit the change:** `git add SKILL.md && git commit -m "autoresearch: [one-line description]"`
 
-5. **Score it.** Run every output through every eval. Calculate total score.
+5. **Run the experiment.** Execute the skill with the test inputs. **Save all outputs into `runs/exp-N/`** — copy or move every artifact the skill produces into `runs/exp-N/<prompt-id>/` so every experiment is self-contained and comparable.
 
-6. **Decide: keep or discard.**
-   - Score improved -> **KEEP.** This is the new baseline.
-   - Score unchanged -> **DISCARD.** Revert to previous version.
-   - Score worse -> **DISCARD.** Revert to previous version.
+6. **Score it.** Run every output through every eval. Calculate total score. Measure `skill_lines` with `wc -l SKILL.md`.
 
-7. **Log the result** and update results.json / dashboard.
+7. **Decide: keep or discard.**
 
-8. **If this was a direction-level change**, log it in research-log.json (see step 7).
+   점수와 함께 SKILL.md의 줄 수 변화를 고려한다:
 
-9. **Repeat.** Go back to step 1.
+   | 점수 변화 | 줄 수 변화 | 판단 |
+   |-----------|-----------|------|
+   | 개선 (+2점 이상) | 증가 | **KEEP** — 의미 있는 개선은 복잡성 증가를 정당화 |
+   | 미미한 개선 (+1점) | 10줄 이상 증가 | **DISCARD** — 복잡성 대비 개선이 부족 |
+   | 동일 (±0점) | 감소 | **KEEP** — 같은 성능을 더 짧은 프롬프트로 달성 |
+   | 동일 (±0점) | 증가 | **DISCARD** — 복잡성만 증가 |
+   | 악화 | 무관 | **DISCARD** |
 
-**Stop conditions:**
+   점수가 동일한 두 버전이 있으면 항상 더 짧은 버전을 선택한다.
+
+   - **KEEP** → 이 commit을 유지한다. 이것이 새로운 baseline이다.
+   - **DISCARD** → `git reset --hard HEAD~1`로 직전 commit을 되돌린다.
+
+   **개별 eval 퇴행 감지:** total score가 올라도, 이전에 pass하던 개별 eval이 fail로 바뀐 경우에는 DISCARD를 강하게 고려하라. 한 영역의 개선이 다른 영역의 퇴행을 숨기는 것은 장기적으로 스킬 품질을 해친다.
+
+8. **Log the result** and update results.json / dashboard.
+
+9. **If this was a direction-level change**, log it in research-log.json (see step 7).
+
+10. **Repeat.** Go back to step 1.
+
+### 주기적 삭제 실험
+
+매 5번째 실험마다 의도적으로 "삭제 mutation"을 시도하라. 최근 추가된 규칙 중 점수에 실제로 기여하지 않는 것을 찾아 제거한다. 규칙을 빼서 점수가 유지되면 그것은 최고의 실험 결과다. SKILL.md가 baseline 대비 200% 이상 비대해지면 changelog에 경고를 기록한다.
+
+### stop conditions
+
 - The user manually stops you
 - Budget cap reached
 - 95%+ pass rate for 3 consecutive experiments (or custom termination conditions — see `references/mutation-guide.md`)
 - System-level timeout or resource limit
 
-**If you run out of ideas:** Re-read failing outputs. Combine previous near-miss mutations. Try a completely different approach. Try removing things instead of adding. Simplification that maintains the score is a win.
+아이디어가 떨어졌다는 것은 멈출 이유가 아니다 → 아래 "when stuck" 전략을 참조하라.
+
+### when stuck — 스킬 프롬프트 최적화 전용 전략
+
+3회 연속 discard거나 아이디어가 떨어졌을 때:
+
+1. **순서 재배치**: 가장 자주 실패하는 eval과 관련된 instruction을 SKILL.md 상단으로 이동. LLM은 프롬프트 초반의 지시를 더 강하게 따르는 경향이 있다.
+2. **부정형 → 긍정형 전환**: "~하지 마라" → "반드시 ~하라" 형태로. 예: "목록에 번호를 붙이지 마라" → "모든 목록은 불릿(•)으로 시작하라"
+3. **예시 교체**: 새 예시를 추가하는 대신, 기존 예시를 실패 패턴을 직접 해결하는 예시로 교체. 예시 수는 늘리지 않는다.
+4. **제거 실험**: instruction을 하나 제거하고 점수를 측정. 서로 충돌하는 instruction이 있으면 제거가 곧 개선이다.
+5. **구체성 증가**: 모호한 instruction에 구체적 수치/포맷 추가. 예: "간결하게 써라" → "각 섹션은 3-5문장으로 제한하라"
+6. **역할(persona) 조정**: 스킬 도입부의 역할 설명을 변경. 예: "당신은 전문 기술 문서 작성자입니다" → "당신은 비개발자를 위한 기술 가이드 작성 전문가입니다"
+7. **이전 near-miss 조합**: changelog에서 각각 discard됐지만 점수가 baseline과 비슷했던 mutation 2개를 동시에 적용. (이 경우에 한해 "한 번에 한 가지" 규칙의 예외를 허용)
 
 ---
 
 ## step 7: maintain the logs
 
-Three files, three different jobs. Keep them separate.
+Three files, three different jobs. Keep them separate. See `references/logging-guide.md` for templates and schemas.
 
-### changelog.md — every experiment, kept or discarded
-
-```markdown
-## Experiment [N] — [keep/discard/human-reviewed]
-
-**Score:** [X]/[max] ([percent]%)
-**Change:** [One sentence describing what was changed]
-**Reasoning:** [Why this change was expected to help]
-**Result:** [What actually happened — which evals improved/declined]
-**Failing outputs:** [Brief description of what still fails]
-**Human insight:** [If any subjective feedback was given]
-```
-
-### research-log.json — direction shifts only
-
-NOT every experiment goes here. Only log **direction shifts** — meaningful changes in approach, strategy, or framing.
-
-```json
-{
-  "skill_name": "[name]",
-  "entries": [
-    {
-      "revision_number": 3,
-      "date": "2026-03-25",
-      "change_summary": "Switched from announcement tone to curiosity-trigger tone",
-      "change_rationale": "Announcement tone passed evals but felt generic in human review",
-      "score_before": 32,
-      "score_after": 35,
-      "direction_shift": "announcement -> curiosity trigger",
-      "source": "human-review | auto-loop | false-positive-correction",
-      "model_used": "[model identifier]"
-    }
-  ]
-}
-```
-
-The research log survives model upgrades. When a new model comes out, hand it the research log and it picks up where the previous model left off.
-
-**Maintenance:** If exceeds 30 entries, keep the 10 most recent in full detail + a pattern summary of the rest.
-
-### results.tsv — raw score data
-
-Tab-separated, one row per experiment. Updated automatically. Powers the dashboard.
+- **changelog.md** — every experiment, kept or discarded. Score, change, reasoning, result, failing outputs, human insight.
+- **research-log.json** — direction shifts only. Survives model upgrades. If exceeds 30 entries, keep 10 most recent + pattern summary.
+- **results.tsv** — tab-separated, one row per experiment. Columns: `experiment	score	max_score	pass_rate	skill_lines	status	description`. Powers the dashboard.
 
 ---
 
@@ -355,41 +264,40 @@ Tab-separated, one row per experiment. Updated automatically. Powers the dashboa
 
 When the user returns or the loop stops, present:
 
-1. **Score summary:** Baseline -> Final (percent improvement)
-2. **Total experiments:** How many mutations tried
-3. **Keep rate:** Kept vs discarded
-4. **Top 3 changes that helped most** (from changelog)
-5. **Human insights incorporated** (from the review phase, if any)
-6. **Remaining failure patterns** (what still fails, if anything)
-7. **Direction shifts** (from research-log.json)
-8. **The improved SKILL.md** (already saved in place)
-9. **File locations** for all output files
+1. **Score:** Baseline → Final (percent improvement)
+2. **Experiments:** total tried, keep rate
+3. **Top 3 changes** that helped most (from changelog)
+4. **Human insights** incorporated (if any)
+5. **Remaining failures** (if any)
+6. **프롬프트 크기:** baseline → 최종 줄 수
+7. **Git log:** `git log --oneline autoresearch/[skill-name]`
+8. **File locations** for all output files
 
 ---
 
-## step 9: false positive tracking (outer loop — periodic)
+## step 9: next steps
 
-> Run this only when real-world performance data is available.
+autoresearch는 일회성이 아니라 지속적 개선 시스템이다.
 
-The inner loop optimizes the skill against eval criteria. But what if the eval criteria themselves are wrong? A high eval score with poor real-world results = **false positive**.
+**1주 후: 실전 검증**
+실제 사용에서 개선된 스킬의 출력 품질을 확인한다. eval 점수가 높지만 실제 출력이 기대에 못 미치면 eval 기준이 잘못된 것이다.
+→ eval을 수정하고 새로운 baseline부터 다시 시작하라.
 
-| Eval Score | Real Performance | Meaning | Action |
-|---|---|---|---|
-| High | High | Evals are working | Keep evals |
-| High | Low | **False positive** | Fix evals |
-| Low | High | Missing success pattern | Add new eval criteria |
-| Low | Low | Correctly filtered | Keep evals |
+**모델 업그레이드 시:** changelog.md와 results.tsv를 참조하여 이전 모델이 도달한 지점부터 이어서 최적화.
 
-**When to run:** After 10+ real-world outputs with performance data. Monthly review, not after every experiment.
+**스킬 구조 변경 시:** 기존 autoresearch 폴더를 아카이브하고 새로운 baseline부터 시작. 이전 changelog는 참고 자료로 활용.
 
-**How to run:**
-1. Compare eval winners against real performance
-2. Identify false positives: high eval score but low real performance
-3. Analyze what the evals missed
-4. Update eval criteria and log with `"source": "false-positive-correction"`
-5. Re-run the inner loop with updated evals
+**정기 리뷰 (월 1회 권장)**
+changelog.md의 패턴을 리뷰한다:
+- 같은 유형의 mutation이 반복 discard되면 → 접근법 자체를 변경
+- 삭제 실험이 계속 KEEP되면 → 스킬이 비대해진 신호
+- 최근 5회 실험이 모두 ±0점이면 → eval 기준을 재검토할 시점
 
-**Caution:** Need minimum 10 data points. Account for external factors (SEO changes, seasonality). Blog content has 1-2 week lag; social media is faster (24-48h).
+---
+
+## step 10: false positive tracking (outer loop)
+
+Eval score가 높은데 실제 출력 품질이 낮으면 false positive. 10+ real-world output이 쌓인 후 월간 리뷰로 실행. See `references/eval-guide.md` (false positive tracking section) for the full process.
 
 ---
 
@@ -397,8 +305,9 @@ The inner loop optimizes the skill against eval criteria. But what if the eval c
 
 ```
 autoresearch-[skill-name]/
-├── dashboard.html          # live browser dashboard (auto-refreshes)
-├── results.json            # data file powering the dashboard
+├── dashboard.html          # live browser dashboard (inline data, no server needed)
+├── results.json            # data file (also inlined into dashboard)
+├── results.tsv             # raw score log with skill_lines column
 ├── changelog.md            # detailed log of every mutation
 ├── research-log.json       # direction shifts and strategic patterns only
 ├── SKILL.md.baseline       # original skill before optimization
@@ -409,19 +318,13 @@ autoresearch-[skill-name]/
 ```
 
 Plus the improved SKILL.md saved back to its original location.
+Git branch `autoresearch/[skill-name]`에 성공한 mutation들의 선형 히스토리가 남는다.
 
 ---
 
-## limitations
+## worked example
 
-| Limitation | Mitigation |
-|---|---|
-| Evals check structure, not true quality | Human review catches subjective issues early; false positive tracking corrects over time |
-| Too-strict evals kill creativity | Keep evals to 3-6 core checks; everything else is a guideline |
-| AI can "game" evals | Write evals at the principle level, not micro-rules; periodic human review |
-| Cost (API calls add up) | Control via runs-per-experiment and budget cap |
-| Overfitting to test inputs | Diverse test prompts; rotate prompts periodically |
-| Eval criteria may be wrong | False positive tracking (step 9) corrects eval drift |
+5회 실험의 전체 흐름 (git ratcheting, skill_lines, simplicity 판단, 삭제 실험, Tier 1/2/3 혼합 eval)을 보여주는 구체적 예시는 `references/worked-example.md`를 참조하라.
 
 ---
 
@@ -430,13 +333,15 @@ Plus the improved SKILL.md saved back to its original location.
 A good autoresearch run:
 
 1. **Started with a baseline** — never changed anything before measuring
-2. **Used appropriate eval types** — binary for rules, comparative for quality, fidelity for pipelines
+2. **Used appropriate eval types** — binary for rules, comparative for quality, fidelity for pipelines; at least 50% Tier 1-2 evals
 3. **Got human input early** — direction validated before going autonomous
 4. **Mutated at the right level** — L1 for rules, L2 for assets, L3 for eval calibration
-5. **Kept a complete log** — every experiment recorded
-6. **Maintained a research log** — direction shifts captured for future models
-7. **Improved the score** — measurable improvement from baseline to final
-8. **Didn't overfit** — the skill got better at the actual job, not just at passing tests
-9. **Quality improved, not just compliance** — before/after comparisons confirm real improvement
+5. **Kept a complete log** — every experiment recorded with skill_lines
+6. **Used git ratcheting** — each mutation committed, discards reset, clean linear history
+7. **Maintained simplicity** — prompt didn't bloat; periodic deletion experiments ran
+8. **Maintained a research log** — direction shifts captured for future models
+9. **Improved the score** — measurable improvement from baseline to final
+10. **Didn't overfit** — the skill got better at the actual job, not just at passing tests
+11. **Quality improved, not just compliance** — before/after comparisons confirm real improvement
 
-If the skill passes all evals but actual output quality hasn't improved — the evals are bad, not the skill. Go to step 9 and fix the evals.
+If the skill passes all evals but actual output quality hasn't improved — the evals are bad, not the skill. Go to step 10 and fix the evals.
