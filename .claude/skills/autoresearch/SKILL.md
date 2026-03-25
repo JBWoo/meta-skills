@@ -176,16 +176,60 @@ Open `http://localhost:8787/dashboard.html` immediately. Kill the server when th
 
 ---
 
-## step 4: establish baseline
+## how to run the target skill
+
+Each experiment requires running the target skill with test inputs and collecting its outputs. Choose the method that fits your setup:
+
+**Method 1: Subagent (recommended).** Use the `Agent` tool to spawn a subagent that executes the skill in the target project's working directory. The subagent inherits the project's CLAUDE.md and skill definitions, so it behaves exactly as a user would experience. Set `cwd` to the target project path in the agent prompt.
+
+```
+Agent(prompt="cd to /path/to/project and run: <test prompt>", subagent_type="general-purpose")
+```
+
+**Method 2: Direct execution.** If the skill can run in the current session (same project), execute it directly — read the skill's CLAUDE.md, follow its workflow, and produce outputs. This is simplest but means you are both the optimizer and the executor, which can bias results.
+
+**Key rules:**
+- Never use external services, APIs, or intermediary servers to run the skill. Run everything locally in Claude Code.
+- Each experiment must start from a clean state — don't let outputs from one experiment leak into the next.
+- If the skill takes longer than 10 minutes per prompt, reduce the test scope (fewer items, simpler sites) rather than increasing timeouts.
+
+---
+
+## step 4: establish baseline (or resume)
+
+**First, check if `autoresearch-[skill-name]/` already exists.**
+
+### If the folder already exists → RESUME
+
+Do NOT create a new folder or re-establish baseline. Continue from the previous run:
+
+1. Read `changelog.md` and `research-log.json` to understand what was already tried
+2. Load `results.json` to find the current best score and next experiment number
+3. Read `SKILL.md.baseline` to understand the original starting point
+4. Resume the experiment loop from where it left off — skip directly to step 5 or step 6 as appropriate
+5. New experiment numbers continue from the last one (e.g., if last was exp-7, next is exp-8)
+
+If a new model is being used, also read the research log:
+
+```
+Here is the research log for [SKILL_NAME].
+It documents [N] meaningful revisions over [DAYS] days.
+The last direction was [LATEST_DIRECTION].
+Continue optimizing from this point.
+Avoid repeating approaches that scored poorly (see discarded entries).
+```
+
+### If the folder does NOT exist → NEW BASELINE
 
 Run the skill AS-IS before changing anything. This is experiment #0.
 
-1. Create working directory: `autoresearch-[skill-name]/`
+1. Create working directory: `autoresearch-[skill-name]/` with `runs/baseline/` subdirectory
 2. Create `results.json`, `changelog.md`, `research-log.json`, and `dashboard.html`, then open the dashboard
 3. Back up the original SKILL.md as `SKILL.md.baseline`
-4. Run the skill using the test inputs
-5. Score every output against every eval
-6. Record the baseline score and update results.json
+4. Run the skill using the test inputs (see "how to run the target skill" above)
+5. **Copy all outputs into `runs/baseline/<prompt-id>/`** — every artifact the skill produces must be preserved in the runs directory, not just left in the skill's native output location
+6. Score every output against every eval
+7. Record the baseline score and update results.json
 
 **IMPORTANT:** After establishing baseline, confirm the score with the user before proceeding. If baseline is already 90%+, ask if continued optimization is worth the cost.
 
@@ -232,7 +276,7 @@ This is the core autoresearch loop. Once started, run autonomously until stopped
 
 3. **Make the change.** Edit the target file(s) at the chosen mutation level.
 
-4. **Run the experiment.** Execute the skill with the test inputs. Save outputs.
+4. **Run the experiment.** Execute the skill with the test inputs. **Save all outputs into `runs/exp-N/`** — copy or move every artifact the skill produces (files, screenshots, generated code, etc.) into the experiment's run folder. The skill's own output directory may differ; always copy results into `runs/exp-N/<prompt-id>/` so every experiment is self-contained and comparable. Never leave experiment outputs only in the skill's native output directory.
 
 5. **Score it.** Run every output through every eval. Calculate total score.
 
@@ -365,26 +409,6 @@ autoresearch-[skill-name]/
 ```
 
 Plus the improved SKILL.md saved back to its original location.
-
----
-
-## resuming a previous run
-
-If `autoresearch-[skill-name]/` already exists:
-
-1. Read `changelog.md` and `research-log.json`
-2. Load `results.json` to find the current score and next experiment number
-3. Resume the loop from where it left off — don't re-establish baseline
-
-If a new model is being used, also read the research log:
-
-```
-Here is the research log for [SKILL_NAME].
-It documents [N] meaningful revisions over [DAYS] days.
-The last direction was [LATEST_DIRECTION].
-Continue optimizing from this point.
-Avoid repeating approaches that scored poorly (see discarded entries).
-```
 
 ---
 
