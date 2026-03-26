@@ -38,6 +38,7 @@ See `references/design-principles.md` for design rules to apply while authoring.
 - CLAUDE.md, AGENT.md, skill file contents are **NOT written** — only their names and roles
 - Implementation spec covers structure and responsibilities, not code or prompts
 - Every workflow step must have: success criteria, validation method, failure handling
+- 스킬 생성이 포함된 설계서에는 반드시 **skill-creator 스킬 사용 의무** 섹션을 포함할 것 (상세 규칙은 `references/design-principles.md`의 "Skill Creation Standards" 참조)
 
 ### Phase 3: Review
 

@@ -77,5 +77,5 @@ python .codex/skills/blueprint/scripts/validate_blueprint_doc.py ./blueprint-<ta
 ## Notes
 
 - 문서 구조는 템플릿의 영문 헤더를 유지한다. 검증 스크립트가 그 헤더를 기준으로 동작한다.
-- Skill 설계나 추가가 스코프에 포함되면 `skill-creator`를 사용한다고 문서에 명시한다.
+- 스킬 생성이 포함된 설계서에는 반드시 **skill-creator 스킬 사용 의무** 섹션을 포함할 것 (상세 규칙은 `references/design-principles.md`의 "Skill Creation Standards" 참조)
 - 새 skill 폴더를 설계할 때는 `.codex/skills/<skill-name>/` 기준으로 적고, 불필요한 문서는 만들지 않는다.

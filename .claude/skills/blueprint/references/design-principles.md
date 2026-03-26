@@ -75,3 +75,32 @@ Recommendation: Store intermediate outputs in `/output/` and pass only file path
 | Tool/function unit (small) | Role/responsibility unit (large) |
 | Shareable across multiple agents | Specific to one workflow |
 | Examples: `file-parser`, `api-caller` | Examples: `code-reviewer`, `report-generator` |
+
+## Skill Creation Standards
+
+블루프린트 설계서에 스킬이 포함될 경우, 구현 단계에서 반드시 **`skill-creator` 스킬**을 사용하여 스킬을 생성·검증해야 한다. 직접 SKILL.md를 손으로 작성하면 규격 불일치가 발생하므로 이를 방지하기 위한 필수 규칙이다.
+
+### 왜 skill-creator를 거쳐야 하는가
+
+- **SKILL.md frontmatter 규격**: `name`, `description` 필수 필드 + 트리거 정확도를 위한 description 최적화가 필요
+- **폴더 구조 규격**: `SKILL.md` + `scripts/`, `references/`, `assets/` 구조를 준수해야 함
+- **Progressive disclosure**: SKILL.md 본문 500줄 이내, 대용량 참조는 `references/`로 분리
+- **Description 최적화**: skill-creator의 description optimization 루프를 거쳐야 트리거 정확도가 보장됨
+- **테스트 검증**: 테스트 프롬프트 실행 → 평가 → 개선 루프를 통해 스킬 품질 확보
+
+### 설계서에 포함할 내용
+
+블루프린트 문서의 **구현 스펙 > 스킬/스크립트 목록** 또는 별도 섹션에 아래 내용을 명시:
+
+```markdown
+## 스킬 생성 규칙
+
+이 설계서에 정의된 모든 스킬은 구현 시 반드시 `skill-creator` 스킬(`/skill-creator`)을 사용하여 생성할 것.
+직접 SKILL.md를 수동 작성하지 말 것 — 규격 불일치 및 트리거 실패의 원인이 됨.
+
+skill-creator가 보장하는 규격:
+1. SKILL.md frontmatter (name, description) 필수 필드 준수
+2. description의 트리거 정확도 최적화 (eval 기반 optimization loop)
+3. 폴더 구조 (SKILL.md + scripts/ + references/) 규격 준수
+4. 테스트 프롬프트 실행 및 품질 검증 완료
+```

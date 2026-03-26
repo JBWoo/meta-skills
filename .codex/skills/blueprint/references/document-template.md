@@ -164,6 +164,18 @@ Use the exact section headers below so `scripts/validate_blueprint_doc.py` can v
 |---|---|---|---|
 | [skill-name] | skill/script | [responsibility] | [when it is used] |
 
+### Skill Creation Rules
+
+> 이 설계서에 정의된 모든 스킬은 구현 시 반드시 `skill-creator` 스킬(`/skill-creator`)을 사용하여 생성할 것.
+> 직접 SKILL.md를 수동 작성하지 말 것 — 규격 불일치 및 트리거 실패의 원인이 됨.
+
+skill-creator가 보장하는 규격:
+1. SKILL.md frontmatter (`name`, `description`) 필수 필드 준수
+2. `description`의 트리거 정확도 최적화 (eval 기반 optimization loop)
+3. 폴더 구조 (`SKILL.md` + `scripts/` + `references/`) 규격 준수
+4. Progressive disclosure: SKILL.md 본문 500줄 이내, 대용량 참조는 `references/`로 분리
+5. 테스트 프롬프트 실행 및 품질 검증 완료
+
 ### Core Artifacts
 | Path | Format | Producer | Purpose |
 |---|---|---|---|
