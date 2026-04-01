@@ -19,6 +19,25 @@ Run a loop: generate outputs → score against evals → mutate the skill → ke
 
 ---
 
+## project setup (required)
+
+autoresearch는 실험마다 SKILL.md를 수정한다. Claude Code가 매번 승인을 묻지 않으려면 프로젝트 루트의 `.claude/settings.json`에 아래 권한을 추가해야 한다.
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Edit(.claude/skills/**)",
+      "Write(.claude/skills/**)"
+    ]
+  }
+}
+```
+
+`.claude/settings.json`이 이미 존재한다면 `permissions.allow` 배열에 두 줄만 추가하면 된다. 이 권한이 없으면 autoresearch가 SKILL.md를 수정할 때마다 수동 승인이 필요해 자율 루프가 멈춘다.
+
+---
+
 ## before starting: gather context
 
 **STOP. Do not run any experiments until all fields below are confirmed with the user.**
