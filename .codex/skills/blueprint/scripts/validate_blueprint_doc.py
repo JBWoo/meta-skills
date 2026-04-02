@@ -31,6 +31,26 @@ REQUIRED_CONTEXT_SUBHEADERS = [
     "### Terms",
 ]
 
+REQUIRED_GOAL_SUBHEADERS = [
+    "### Primary Goal",
+    "### Success Definition",
+    "### Out of Scope",
+]
+
+REQUIRED_WORKFLOW_SUBHEADERS = [
+    "### End-to-End Flow",
+    "### LLM vs Code Boundary",
+    "### State Model",
+]
+
+REQUIRED_IMPLEMENTATION_SUBHEADERS = [
+    "### Recommended Folder Structure",
+    "### AGENTS.md Responsibilities",
+    "### Skill and Script Inventory",
+    "### Skill Creation Rules",
+    "### Core Artifacts",
+]
+
 REQUIRED_STEP_FIELDS = [
     "1) Step Goal:",
     "2) Input / Output:",
@@ -54,8 +74,9 @@ REQUIRED_STATES = [
 ]
 
 
-STEP_HEADING_RE = re.compile(r"^#### Step \d{2}:", flags=re.MULTILINE)
+STEP_HEADING_RE = re.compile(r"^#### Step \d+:", flags=re.MULTILINE)
 FENCED_BLOCK_RE = re.compile(r"```.*?```", flags=re.DOTALL)
+CHECKLIST_ITEM_RE = re.compile(r"^- \[ \] .+$", flags=re.MULTILINE)
 
 
 def strip_fenced_code_blocks(text: str) -> str:
@@ -96,11 +117,25 @@ def validate(path: Path) -> tuple[bool, list[str]]:
         issues.append("Filename should follow blueprint-<task-name>.md")
 
     assert_in_order(text_no_code, REQUIRED_TOP_HEADERS, issues, "top header")
+    assert_in_order(text_no_code, REQUIRED_GOAL_SUBHEADERS, issues, "goal section")
     assert_in_order(text_no_code, REQUIRED_CONTEXT_SUBHEADERS, issues, "context section")
+    assert_in_order(text_no_code, REQUIRED_WORKFLOW_SUBHEADERS, issues, "workflow section")
+    assert_in_order(
+        text_no_code,
+        REQUIRED_IMPLEMENTATION_SUBHEADERS,
+        issues,
+        "implementation section",
+    )
 
     for item in REQUIRED_STATES:
         if item not in text_no_code:
             issues.append(f"Missing state token: {item}")
+
+    if "| LLM handles | Code handles |" not in text_no_code:
+        issues.append("Missing LLM vs Code Boundary table header")
+
+    if "| State | Entry Condition | Exit Condition | Next State |" not in text_no_code:
+        issues.append("Missing State Model table header")
 
     step_blocks = split_step_blocks(text_no_code)
     if len(step_blocks) < 2:
@@ -113,6 +148,13 @@ def validate(path: Path) -> tuple[bool, list[str]]:
 
     if "output/step01_" not in text_no_code:
         issues.append("Expected at least one intermediate artifact path using output/stepNN_<name>.<ext>")
+
+    checklist_count = len(CHECKLIST_ITEM_RE.findall(text_no_code))
+    if checklist_count < 6:
+        issues.append("Validation checklist should contain at least 6 unchecked items")
+
+    if "skill-creator" not in text_no_code:
+        issues.append("Missing required skill-creator usage rule")
 
     return len(issues) == 0, issues
 

@@ -15,7 +15,7 @@ This skill adapts Andrej Karpathy's autoresearch methodology (autonomous experim
 
 Run a loop: generate outputs → score against evals → mutate the skill → keep improvements → repeat.
 
-**Output:** An improved target skill file + `results.tsv` + `changelog.md` + `research-log.json` + live HTML dashboard.
+**Output:** An improved target skill file + `results.json` + `results.tsv` + `changelog.md` + `research-log.json` + live HTML dashboard.
 
 ---
 
@@ -131,17 +131,17 @@ Use only for items that cannot be verified programmatically — content quality,
 
 ---
 
-## step 3: generate the live dashboard
+## step 3: define the live dashboard
 
-Before running any experiments, create `autoresearch-[skill-name]/dashboard.html` and open it. See `references/dashboard-guide.md` for the full dashboard spec.
+Read `references/dashboard-guide.md` for the full dashboard spec. Do not create any files here — `autoresearch-[skill-name]/dashboard.html` is created as part of step 5 folder setup.
 
-**Key rule:** Do not fetch results.json — instead, after each experiment, inline the data directly into `<script>const RESULTS_DATA = ...;</script>` inside dashboard.html. This lets you open it with the `file://` protocol without needing a separate server.
+**Key rule for dashboard HTML:** Never use `fetch()` or XHR to load data from the browser. After each experiment, inline the latest data directly into `<script>const RESULTS_DATA = ...;</script>` inside dashboard.html. This lets the file be opened with the `file://` protocol without a server. This rule applies to the dashboard HTML only — reading `results.json` as an agent step is expected and required.
 
 ---
 
 ## step 4: define the run harness
 
-Before running any experiments, define the exact repeatable procedure that constitutes "running the target skill." Save it as `autoresearch-[skill-name]/run-harness.md` when you create the folder in step 5.
+Before running any experiments, define the exact repeatable procedure that constitutes "running the target skill." Write the harness content here; the file is saved to `autoresearch-[skill-name]/run-harness.md` as part of step 5 folder setup.
 
 **A trustworthy harness specifies:**
 1. **Input** — which test prompt, in what format, passed how
@@ -171,8 +171,9 @@ Do NOT create a new folder or re-establish baseline. Continue from the previous 
 2. Load `results.json` to find the current best score and next experiment number
 3. Read `<target-skill-filename>.baseline` to understand the original starting point
 4. If autoresearch branch exists, `git checkout autoresearch/[skill-name]`
-5. Resume the experiment loop from where it left off — skip directly to step 6 or step 7 as appropriate
-6. New experiment numbers continue from the last one (e.g., if last was exp-7, next is exp-8)
+5. Tell the user the path to `dashboard.html` — open it with `file://` in a browser to track progress
+6. Resume the experiment loop from where it left off — skip directly to step 6 or step 7 as appropriate
+7. New experiment numbers continue from the last one (e.g., if last was exp-7, next is exp-8)
 
 If a new model is being used, also read the research log to continue from the last direction.
 
@@ -181,7 +182,7 @@ If a new model is being used, also read the research log to continue from the la
 Run the skill AS-IS before changing anything. This is experiment #0.
 
 1. Create `autoresearch-[skill-name]/` with `runs/baseline/`
-2. Create `results.json`, `changelog.md`, `research-log.json`, `dashboard.html`, `run-harness.md` → open dashboard
+2. Create `results.json`, `changelog.md`, `research-log.json`, `dashboard.html`, `run-harness.md` (content from step 4) → tell the user the path to `dashboard.html` so they can open it with `file://` in a browser
 3. Back up the original skill as `<target-skill-filename>.baseline`
 4. Run the skill with test inputs, copy all outputs into `runs/baseline/<prompt-id>/`
 5. Score every output against every eval, record baseline score
@@ -209,7 +210,7 @@ The first 3 experiments run with human review. This is where subjective judgment
 4. **Run the experiment** and score it
 5. **Present results** showing: the change and why, before/after score, 2-3 sample outputs, keep/discard recommendation
 6. **Ask the user:** "Does this direction feel right?" / "Anything the evals aren't catching?"
-7. **If subjective feedback is given**, note it in changelog.md as `[HUMAN INSIGHT]` and incorporate into SKILL.md. Do NOT add it as a new eval.
+7. **If subjective feedback is given**, note it in changelog.md as `[HUMAN INSIGHT]` and incorporate into the target skill file. Do NOT add it as a new eval.
 8. **Keep or discard** (same rules as step 7). DISCARD → check for unrelated uncommitted changes first (`git status --porcelain`). If any exist outside the checkpointed target files, stash them: `git stash`. Then `git reset --soft HEAD~1`. Restore only the mutated files by explicit path, for example `git restore <target-skill-path> <reference-path>`. Then `git stash pop` if you stashed.
 9. **Log the result** with status `human-reviewed`.
 
@@ -218,6 +219,8 @@ The first 3 experiments run with human review. This is where subjective judgment
 ---
 
 ## step 7: run the autonomous experiment loop
+
+**You are now past the confirmation phase (step 0) and the human review phase (step 6). The following autonomous loop rules apply from this point forward.**
 
 This is the core autoresearch loop. Once started, run autonomously until stopped.
 
@@ -279,7 +282,7 @@ Running out of ideas is not a reason to stop → see the "when stuck" strategies
 
 After 3 consecutive discards or when ideas run dry:
 
-1. **Reorder instructions**: Move the instruction most related to the most frequently failing eval to the top of SKILL.md. LLMs tend to follow instructions near the start of the prompt more strongly.
+1. **Reorder instructions**: Move the instruction most related to the most frequently failing eval to the top of the target skill file. LLMs tend to follow instructions near the start of the prompt more strongly.
 2. **Negative → positive framing**: Convert "do not X" into "always do Y." Example: "do not number the list" → "start every list item with a bullet (•)"
 3. **Replace examples**: Instead of adding new examples, replace existing ones with examples that directly address the failure pattern. Do not increase the total number of examples.
 4. **Deletion experiment**: Remove one instruction and measure the score. If two instructions conflict, removing one is itself an improvement.
@@ -295,7 +298,8 @@ Three files, three different jobs. Keep them separate. See `references/logging-g
 
 - **changelog.md** — every experiment, kept or discarded. Score, change, reasoning, result, failing outputs, human insight.
 - **research-log.json** — direction shifts only. Survives model upgrades. If exceeds 30 entries, keep 10 most recent + pattern summary.
-- **results.tsv** — tab-separated, one row per experiment. Columns: `experiment	score	max_score	pass_rate	skill_lines	status	description`. Powers the dashboard.
+- **results.json** — machine-readable score file, one object per experiment. Contains the same fields as results.tsv plus full eval breakdowns. This is the file inlined into dashboard.html after each experiment.
+- **results.tsv** — tab-separated, one row per experiment. Columns: `experiment	score	max_score	pass_rate	skill_lines	status	description`. Used for external analysis and as the authoritative score log.
 
 ---
 
@@ -313,8 +317,6 @@ When the user returns or the loop stops, present:
 6. **Prompt size:** baseline → final line count
 7. **Git log:** `git log --oneline autoresearch/[skill-name]`
 8. **File locations** for all output files
-
----
 
 ---
 

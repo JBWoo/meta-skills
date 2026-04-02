@@ -61,6 +61,7 @@ Possible actions:
 
 - `문서 반영`
 - `자동화 아이디어 기록`
+- `자동화 스캐폴드 생성`
 - `학습 기록 저장`
 - `요약만 제공`
 
@@ -83,13 +84,23 @@ Rules for edits:
 
 #### 4b. Automation ideas
 
-For each accepted automation:
+`자동화 아이디어 기록` means documenting accepted ideas, not implementing them.
+
+Rules:
+
+- Prefer updating the smallest relevant existing document that already tracks plans, backlog, specs, or follow-ups
+- If no such document exists, include the accepted ideas only in the final response; do not create a new file just to store them
+- Record each idea with a concrete trigger, expected input/output, and why it is worth automating
+
+`자동화 스캐폴드 생성` is a separate action and requires explicit user intent.
+
+For each accepted scaffold:
 
 - Skill -> create `.codex/skills/<name>/SKILL.md`
 - Script -> create `scripts/<name>.py`
 - If `skill-creator` is available and the user wants a real skill scaffold, use it; otherwise create the minimal required structure
 
-Keep automation suggestions narrow. Do not overbuild.
+Keep automation suggestions and scaffolds narrow. Do not overbuild.
 
 #### 4c. Learnings
 

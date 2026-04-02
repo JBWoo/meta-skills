@@ -78,7 +78,7 @@ Recommendation: Store intermediate outputs in `/output/` and pass only file path
 
 ## Skill Creation Standards
 
-블루프린트 설계서에 스킬이 포함될 경우, 구현 단계에서 반드시 **`skill-creator` 스킬**을 사용하여 스킬을 생성·검증해야 한다. 직접 SKILL.md를 손으로 작성하면 규격 불일치가 발생하므로 이를 방지하기 위한 필수 규칙이다.
+블루프린트로 설계된 모든 시스템에서 구현 단계에서 반드시 **`skill-creator` 스킬**을 사용하여 스킬을 생성·검증해야 한다. 설계서에 스킬이 포함되어 있는지 여부와 무관하게, 스킬을 구현할 때 직접 SKILL.md를 손으로 작성하는 것은 금지된다. 규격 불일치 및 트리거 실패를 방지하기 위한 필수 규칙이다.
 
 ### 왜 skill-creator를 거쳐야 하는가
 

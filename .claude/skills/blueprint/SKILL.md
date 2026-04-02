@@ -15,6 +15,7 @@ Conduct a structured interview to understand the user's automation task, then ge
 
 1. Read `references/document-template.md` — the full section-by-section template for the output file
 2. Read `references/design-principles.md` — design rules for agent structure, validation, data transfer, skill vs sub-agent
+3. *(Optional)* Skim `references/example-blueprint.md` — a fully annotated sample blueprint document for calibration
 
 ## Workflow
 
@@ -58,13 +59,13 @@ Save as `blueprint-<task-name>.md` in the current working directory.
 - CLAUDE.md, AGENT.md, skill file contents are **NOT written** — only their names and roles
 - Implementation spec covers structure and responsibilities, not code or prompts
 - Every workflow step must have: success criteria, validation method, failure handling
-- **If the design includes any skills: include a "스킬 생성 규칙" section** requiring `skill-creator` usage (see `references/design-principles.md` › Skill Creation Standards for the exact text)
-- **If `skill-creator` is not installed:** note in the document that skills should be created following SKILL.md frontmatter standards (name, description, 500-line limit, references/ for large content)
+- **Always include a "스킬 생성 규칙" section** in every blueprint document. All skills defined in this document must be created via `skill-creator` at implementation time — direct manual authoring of SKILL.md is prohibited (see `references/design-principles.md` › Skill Creation Standards for the exact section text). The document **must contain the literal string `skill-creator`** — the structural validator checks for this and will fail without it.
 
 **Completeness check before saving** — confirm each item is filled:
 - [ ] Every workflow step has success criteria + validation method + failure handling
 - [ ] LLM vs script responsibility table is filled
 - [ ] Folder structure is defined
+- [ ] "스킬 생성 규칙" section is present and mentions `skill-creator`
 - [ ] No table cell left blank or "TBD"
 
 ### Phase 2.5: Validate Document
@@ -74,11 +75,11 @@ After saving, run the structural validation script before presenting the documen
 Do not assume a relative path from the target project — run the script from the **currently installed blueprint skill path**.
 
 ```bash
-# When working in this repo:
-python .claude/skills/blueprint/scripts/validate_blueprint_doc.py ./blueprint-<task-name>.md
-
-# When installed globally:
+# When installed globally (normal usage):
 python ~/.claude/skills/blueprint/scripts/validate_blueprint_doc.py ./blueprint-<task-name>.md
+
+# When working inside the skill repository itself (development/testing only):
+python .claude/skills/blueprint/scripts/validate_blueprint_doc.py ./blueprint-<task-name>.md
 ```
 
 If validation fails, fix the document and run again. This script checks structure only (required sections, step fields, and implementation/workflow section presence) — it does not check content quality.

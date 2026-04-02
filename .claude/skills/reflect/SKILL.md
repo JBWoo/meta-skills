@@ -160,7 +160,7 @@ PHASE_1_RESULTS = """
 """
 ```
 
-Then launch ONE more agent, passing this collected string as context:
+Then launch ONE more agent. **Before submitting the prompt, replace `{PHASE_1_RESULTS}` with the actual collected output text from all 4 agents** — do not pass the literal placeholder string.
 
 ```
 subagent_type: general-purpose
@@ -223,7 +223,7 @@ Use the `Edit` tool to apply the doc-updater's suggestions to the target files.
 
 ### 자동화 생성
 For each automation suggestion:
-1. Determine type: **skill** → use `skill-creator` if available, otherwise create `.claude/skills/<name>/SKILL.md`; **script** → write to `scripts/<name>.sh` or `scripts/<name>.py`; **hook** → add to `.claude/settings.json` under `hooks`
+1. Determine type: **skill** → use `skill-creator` (required); if not installed, tell the user to install it first — do not create SKILL.md manually; **script** → write to `scripts/<name>.sh` or `scripts/<name>.py`; **hook** → add to `.claude/settings.json` under `hooks`
 2. Keep it minimal — implement only what was identified in the session
 3. Tell the user what was created and where
 

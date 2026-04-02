@@ -43,6 +43,7 @@ Do not block on a perfect spec, but do establish a minimum viable experiment con
 8. **Human review mode** — default: review baseline plus the first meaningful keep; use `skip` only when the user explicitly wants unattended mode
 9. **Execution mode** — default: sequential in the current agent; use subagents only if the user explicitly asks for delegation or parallel agent work
 10. **Run harness** — define the exact repeatable command or workflow that constitutes "running the skill"
+11. **Versioning mode** — default: `git-assisted` when a clean local git workflow is practical, otherwise `file-checkpoint`
 
 If the user provides an `evals.json`, use that instead of drafting items 3-4.
 
@@ -52,6 +53,7 @@ Execution mode rules:
 - Do not spawn subagents unless the user explicitly authorized delegation
 - Treat "run the skill" as an explicit harness, not a vague conversational attempt
 - If fresh runs are unavailable, continue sequentially and note context contamination risk
+- Do not assume git is available or appropriate; decide versioning mode explicitly before baseline
 
 ## Step 1: Read the Target Skill
 
@@ -82,6 +84,38 @@ Scoring:
 
 Use the highest-determinism eval you can. LLM-as-judge is acceptable only when the rubric is explicit enough for repeatable scoring.
 
+### Eval Determinism Hierarchy
+
+When designing evals, prefer the highest-determinism check available.
+
+**Tier 1 - Deterministic checks**
+
+- regex, required section presence, file existence
+- JSON/YAML parse success
+- character-count or item-count bounds
+
+**Tier 2 - Structural validation**
+
+- heading hierarchy
+- table shape consistency
+- code block formatting or schema-level structure
+
+**Tier 3 - LLM-as-judge**
+
+- tone, usefulness, completeness, quality, or other subjective criteria that cannot be checked programmatically
+
+Target at least 50% of the eval suite to be Tier 1-2. If most evals are Tier 3, the loop becomes too noisy to trust.
+
+### Eval Quality Check
+
+Before locking the eval suite, run this 3-question test on each eval:
+
+1. Would two different reviewers likely score the same output the same way?
+2. Could the skill game this check without becoming genuinely better?
+3. Does this check capture something the user actually cares about?
+
+If any answer is weak, tighten or replace the eval.
+
 ## Step 3: Define the Run Harness
 
 Each experiment needs a repeatable harness that executes the skill and collects outputs.
@@ -92,7 +126,11 @@ Acceptable harnesses:
 - A bounded manual protocol with fixed prompt, fixed output path, and deterministic artifact capture
 - A delegated subagent task only when the user explicitly approved delegation
 
-Before baseline, write the harness into the run folder so future experiments are comparable. If you cannot define a trustworthy harness, stop calling it autoresearch and switch to "skill rewrite + manual review" mode.
+Before baseline, write the harness into `run-harness.md` inside the run folder so future experiments are comparable.
+
+Also create the live dashboard before running experiments. Follow `references/dashboard-guide.md` and create `dashboard.html` as a self-contained file that is updated by inlining the latest `results.json` data after each experiment.
+
+If you cannot define a trustworthy harness, stop calling it autoresearch and switch to "skill rewrite + manual review" mode.
 
 See `references/execution-guide.md`.
 
@@ -109,10 +147,12 @@ Baseline is experiment `#0`.
 5. Copy **all outputs** into `runs/baseline/<prompt-id>/`
 6. Score every output against every eval
 7. Record the baseline score
-8. Create a git branch: `autoresearch/[skill-name]` (add `-N` suffix if needed)
-9. Add the autoresearch folder to `.gitignore`
-10. Commit the baseline skill files explicitly by path, for example:
-    `git add <target-skill-path> .gitignore && git commit -m "autoresearch: baseline ([score]/[max])"`
+8. If versioning mode is `git-assisted`, create a git branch: `autoresearch/[skill-name]` (add `-N` suffix if needed)
+9. If versioning mode is `git-assisted` and the run folder should stay untracked, add the autoresearch folder to `.gitignore` only when that is safe for the repo
+10. Persist the baseline snapshot:
+    - `git-assisted`: commit the baseline skill files explicitly by path, for example
+      `git add <target-skill-path> .gitignore && git commit -m "autoresearch: baseline ([score]/[max])"`
+    - `file-checkpoint`: record baseline hashes in `run-harness.md` and keep the copied `.baseline` file as the restore source
 
 After baseline, choose one mode explicitly:
 
@@ -165,7 +205,9 @@ Loop steps:
 3. Checkpoint only the files you plan to touch
 4. Make the bounded change
 5. If a Codex skill's user-facing purpose changes, update `agents/openai.yaml` too
-6. Commit the mutated files: `git add <mutated-files> && git commit -m "autoresearch: [description]"`
+6. Persist the mutation:
+   - `git-assisted`: `git add <mutated-files> && git commit -m "autoresearch: [description]"`
+   - `file-checkpoint`: save explicit pre-mutation copies or hashes for each touched file inside the run folder before evaluation
 7. Run the experiment and save every produced artifact under `runs/exp-N/<prompt-id>/`
 8. Score the outputs
 9. Decide `KEEP` or `DISCARD`
@@ -175,13 +217,14 @@ Loop steps:
 
 ### Mutation Safety Rules
 
-- Each mutation is committed before evaluation
-- `KEEP` -> the commit stays as the new baseline
-- `DISCARD` -> use a non-destructive rollback:
-  - `git reset --soft HEAD~1`
-  - restore only the checkpointed files to their pre-experiment contents by explicit path
+- Each mutation is checkpointed before evaluation
+- `KEEP` -> the accepted version becomes the new baseline
+- `DISCARD` -> use a non-destructive rollback that matches the selected versioning mode:
+  - `git-assisted`: `git reset --soft HEAD~1`, then restore only the checkpointed files to their pre-experiment contents by explicit path
+  - `file-checkpoint`: restore only the touched files from the saved pre-mutation copies or the latest accepted baseline copies
 - Never use `git reset --hard` or any broad revert that can destroy unrelated user changes
 - If the repo was already dirty, record which files were pre-modified and exclude unrelated work from rollback
+- If git is unavailable, unwanted, or unsafe for the current repo, stay in `file-checkpoint` mode for the whole run
 
 ### KEEP vs DISCARD Rules
 
@@ -291,9 +334,14 @@ If `autoresearch-[skill-name]/` already exists:
 1. Read `changelog.md` and `research-log.json`
 2. Read `results.json` to find the best score and next experiment number
 3. Read `<target-skill-filename>.baseline`
-4. Re-checkout the autoresearch branch if needed
-5. Re-validate the run harness before resuming
-6. Continue from the next experiment number
+4. Reconstruct the prior experiment contract from `run-harness.md`, including target path, eval suite, versioning mode, and termination settings
+5. Compare the current target files against the last accepted baseline using hashes, git history, or explicit file diff
+6. If the target skill, eval contract, or harness changed materially, do **not** resume blindly:
+   - either archive the old run and start a fresh baseline
+   - or document exactly why the old baseline is still comparable
+7. If versioning mode is `git-assisted`, re-checkout the autoresearch branch if needed
+8. Re-validate the run harness before resuming
+9. Continue from the next experiment number
 
 If the model changed, read the prior research log and avoid re-running obviously poor directions.
 

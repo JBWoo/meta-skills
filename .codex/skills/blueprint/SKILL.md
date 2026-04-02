@@ -102,5 +102,5 @@ Show the user the document path and a brief summary of key decisions, then confi
 ## Notes
 
 - Document structure follows English headers from the template — the validation script operates based on those headers.
-- Design documents that include skill creation must have a **skill-creator usage requirement** section (see `references/design-principles.md` › "Skill Creation Standards" for exact wording).
+- All design documents must have a **skill-creator usage requirement** section — every skill defined in the document must be created via `skill-creator` at implementation time, regardless of whether skill creation is a primary focus. See `references/design-principles.md` › "Skill Creation Standards" for exact wording. The validator checks for the literal string `skill-creator`.
 - When designing a new skill folder, write paths relative to `.codex/skills/<skill-name>/` and do not create unnecessary files.
