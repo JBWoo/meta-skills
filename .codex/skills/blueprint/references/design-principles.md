@@ -61,8 +61,8 @@
 ## 6. Skill Design Rules
 
 - skill 이름은 소문자 하이픈 형식 사용
-- SKILL frontmatter 검증은 `skill-creator/scripts/quick_validate.py`
-- blueprint 문서 구조 검증은 `scripts/validate_blueprint_doc.py`
+- SKILL frontmatter 검증은 설치된 `skill-creator` 스킬의 `quick_validate.py`를 사용
+- blueprint 문서 구조 검증은 설치된 `blueprint` 스킬의 `scripts/validate_blueprint_doc.py`를 사용
 - skill 폴더에는 꼭 필요한 파일만 넣고 `README.md`, `CHANGELOG.md` 같은 부가 문서는 만들지 않는다
 
 ### Skill Creation Standards

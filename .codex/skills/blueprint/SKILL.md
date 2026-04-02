@@ -9,44 +9,58 @@ metadata:
 
 ## Overview
 
-사용자가 자동화하려는 작업을 짧게 인터뷰한 뒤, Codex 구현 기준의 단일 설계 문서 `./blueprint-<task-name>.md`를 작성한다.
+Conduct a short interview about the task the user wants to automate, then produce a single design document `./blueprint-<task-name>.md` based on Codex implementation standards.
 
-- 기본 가정은 `단일 Codex 에이전트 + 필요 시 skills/scripts 조합`이다.
-- Claude Code 전용 요소인 `.claude/commands`, `.claude/agents`, `AGENT.md`, `Task` 기반 서브에이전트 구조는 설계에 넣지 않는다.
-- 구현 스펙은 구조와 역할 수준까지만 다루고, 실제 코드 본문이나 장문 프롬프트는 쓰지 않는다.
+- Default assumption: `single Codex agent + skills/scripts as needed`.
+- Do not include Claude Code-specific elements such as `.claude/commands`, `.claude/agents`, `AGENT.md`, or `Task`-based sub-agent structures.
+- Implementation spec covers structure and responsibilities only — do not write actual code bodies or lengthy prompts.
 
 ## Workflow
 
 ### 1. Assess Gaps First
 
-아래 네 영역을 먼저 점검하고, 비어 있는 부분만 질문한다.
+Check the four areas below first, and ask only about what is missing.
 
-| 영역 | 최소 확인 항목 |
+| Area | Minimum items to confirm |
 |---|---|
-| 목표와 성공 기준 | 무엇이 완료 상태인지, 실패는 무엇인지 |
-| 작업 절차 | 입력, 출력, 분기 조건, 사람 개입 지점 |
-| 실행 환경 | 파일 형식, API, 외부 도구, 저장 위치 |
-| 제약 조건 | 정확도, 비용, 속도, 보안, 권한, 운영 범위 |
+| Goal and success criteria | What does completion look like, what counts as failure |
+| Task procedure | Input, output, branch conditions, human intervention points |
+| Execution environment | File formats, APIs, external tools, storage location |
+| Constraints | Accuracy, cost, speed, security, permissions, operational scope |
 
-질문 규칙:
+Interview rules:
 
-- 한 번에 최대 3개까지만 묻는다.
-- Default mode에서는 평문 메시지로 직접 질문한다.
-- 사용자가 모르는 항목은 합리적인 기본값을 채우고, 문서에 그 가정을 명시한다.
-- 최대 3라운드 안에 끝내고, 그 뒤에는 가정과 리스크를 적고 작성 단계로 넘어간다.
+- Ask at most 3 questions per turn.
+- In default mode, ask directly in plain text messages.
+- For items the user does not know, apply a reasonable default and state that assumption explicitly in the document.
+- Finish within 3 rounds at most; after that, note assumptions and risks and proceed to the writing phase.
 
 ### 2. Write the Blueprint
 
-다음 두 참고 문서를 읽고 그대로 반영한다.
+Read the following two reference documents and apply them faithfully.
 
 - `references/document-template.md`
 - `references/design-principles.md`
 
-작성 규칙:
+**Interview findings → document section mapping (confirm before writing):**
 
-- 최종 산출물 경로는 프로젝트 루트의 `./blueprint-<task-name>.md`
-- 중간 산출물은 `output/stepNN_<name>.<ext>` 규칙 사용
-- 각 워크플로우 단계는 반드시 아래 9개 필드를 모두 포함
+| Interview finding | → Document section |
+|---|---|
+| Why it is needed, what problem it solves | §1 배경 및 목적 |
+| What is in / out of scope | §1 범위 |
+| Input format, output format, trigger | §1 입출력 정의 |
+| Technical constraints, API limits | §1 제약조건 |
+| Step-by-step processing, branch conditions | §2 워크플로우 단계별 상세 |
+| Agent judgment vs script processing | §2 LLM 판단 vs 코드 처리 |
+| Tools / APIs used | §3 스킬/스크립트 목록 |
+| Single vs multi-agent | §3 에이전트 구조 |
+| Failure conditions, retry expectations | §2 단계별 상세 › 실패 시 처리 |
+
+Writing rules:
+
+- Final output path: `./blueprint-<task-name>.md` at the project root
+- Intermediate artifacts use the `output/stepNN_<name>.<ext>` naming convention
+- Every workflow step must include all 9 fields below:
   1. Step Goal
   2. Input / Output
   3. LLM Decision Area
@@ -56,26 +70,33 @@ metadata:
   7. Failure Handling
   8. Skills / Scripts
   9. Intermediate Artifact Rule
-- 상태 토큰은 `COLLECTING_REQUIREMENTS`, `PLANNING`, `RUNNING_SCRIPT`, `VALIDATING`, `NEEDS_USER_INPUT`, `DONE`, `FAILED`를 모두 넣는다.
+- Include all state tokens: `COLLECTING_REQUIREMENTS`, `PLANNING`, `RUNNING_SCRIPT`, `VALIDATING`, `NEEDS_USER_INPUT`, `DONE`, `FAILED`.
 
 ### 3. Validate Before Hand-off
 
-문서를 저장한 뒤 아래 검증을 수행한다.
+After saving the document, run the validation below.
 
-```powershell
-python .codex/skills/blueprint/scripts/validate_blueprint_doc.py ./blueprint-<task-name>.md
+Do not assume a relative path from the target project — run the validation script from the **currently installed blueprint skill path**.
+
+Example (adapt the path to your installation):
+
+```bash
+python ~/.codex/skills/blueprint/scripts/validate_blueprint_doc.py ./blueprint-<task-name>.md
+# or if installed elsewhere:
+# python /path/to/codex/skills/blueprint/scripts/validate_blueprint_doc.py ./blueprint-<task-name>.md
 ```
 
-- 실패하면 문서를 수정하고 다시 실행한다.
-- 이 검증은 문서 구조 검사용이다.
-- Codex skill 자체를 추가/수정하는 경우에는 별도로 `skill-creator`의 `quick_validate.py`를 사용한다.
+- If validation fails, fix the document and run again.
+- This validation checks document structure only.
+- Use `./.codex/skills/blueprint/scripts/validate_blueprint_doc.py` only when working directly on the skill repository itself (local clone).
+- When adding or modifying a Codex skill itself, use the separately installed `skill-creator` skill's `quick_validate.py`.
 
 ### 4. Review
 
-사용자에게 문서 경로와 핵심 결정사항을 짧게 요약해서 보여주고, 수정이 필요한지만 확인한다.
+Show the user the document path and a brief summary of key decisions, then confirm whether any changes are needed.
 
 ## Notes
 
-- 문서 구조는 템플릿의 영문 헤더를 유지한다. 검증 스크립트가 그 헤더를 기준으로 동작한다.
-- 스킬 생성이 포함된 설계서에는 반드시 **skill-creator 스킬 사용 의무** 섹션을 포함할 것 (상세 규칙은 `references/design-principles.md`의 "Skill Creation Standards" 참조)
-- 새 skill 폴더를 설계할 때는 `.codex/skills/<skill-name>/` 기준으로 적고, 불필요한 문서는 만들지 않는다.
+- Document structure follows English headers from the template — the validation script operates based on those headers.
+- Design documents that include skill creation must have a **skill-creator usage requirement** section (see `references/design-principles.md` › "Skill Creation Standards" for exact wording).
+- When designing a new skill folder, write paths relative to `.codex/skills/<skill-name>/` and do not create unnecessary files.

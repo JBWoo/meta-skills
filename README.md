@@ -1,20 +1,42 @@
 # Jangpm Meta Skills for Claude Code and Codex
 
-에이전트 시스템을 설계하고, 요구사항을 파고들고, 세션을 마무리하고, 스킬을 자동 최적화하기 위한 메타 스킬 모음입니다.
+A collection of meta skills for designing agent systems, clarifying requirements, wrapping up sessions, and automatically optimizing skills.
 
-- Claude Code 배포본: `.claude/`
-- Codex 배포본: `.codex/skills/`
+- Claude Code distribution: `.claude/`
+- Codex distribution: `.codex/skills/`
 
-## 포함된 스킬
+## Skills
 
-| Skill | 역할 | Claude Code | Codex |
+| Skill | Role | Claude Code | Codex |
 |---|---|---|---|
-| `blueprint` | 자동화/에이전트 시스템 설계서 작성 | `/blueprint` 커맨드 + skill | `blueprint` 또는 `$blueprint` |
-| `deep-dive` | 다회차 인터뷰로 상세 스펙 문서 작성 | `/deep-dive` 커맨드 + skill | `deep-dive` 또는 `$deep-dive` |
-| `reflect` | 작업 세션 정리, 문서 반영 포인트, 다음 액션 도출 | `/reflect` 커맨드 + skill | `reflect` 또는 `$reflect` |
-| `autoresearch` | 스킬 자동 최적화 (반복 실행 + 평가 + 프롬프트 변이) | `/autoresearch` skill | `autoresearch` 또는 `$autoresearch` |
+| `blueprint` | Design document for automation/agent systems | `/blueprint` command + skill | `blueprint` 또는 `$blueprint` |
+| `deep-dive` | Multi-round interview to produce a detailed spec document | `/deep-dive` command + skill | `deep-dive` 또는 `$deep-dive` |
+| `reflect` | Summarize a work session, identify doc update points, surface next actions | `/reflect` command + skill | `reflect` 또는 `$reflect` |
+| `autoresearch` | Automated skill optimization (iterative runs + evaluation + prompt mutation) | `/autoresearch` skill | `autoresearch` 또는 `$autoresearch` |
 
-## 저장소 구조
+## Skill Workflow
+
+These four skills work best in sequence:
+
+```
+blueprint → deep-dive → [implement] → autoresearch → reflect
+```
+
+| Step | Skill | When to use |
+|------|-------|-------------|
+| 1. Design | `blueprint` | Start here for any new agent/automation — produces a complete design document before writing code |
+| 2. Spec | `deep-dive` | When requirements need more clarity — structured interview produces a spec document |
+| 3. Implement | *(your code)* | Build the system following the blueprint and spec |
+| 4. Optimize | `autoresearch` | After the skill works — iteratively improve it using automated eval loops |
+| 5. Wrap up | `reflect` | At the end of any work session — summarize, log learnings, surface follow-up actions |
+
+**Shorter patterns:**
+- New project: `blueprint` → `deep-dive` → implement → `autoresearch` → `reflect`
+- Mid-project feature: `deep-dive` → implement → `reflect`
+- Skill optimization: `autoresearch` standalone
+- Session end: `reflect` standalone
+
+## Repository Structure
 
 ```text
 .claude/
@@ -29,9 +51,9 @@
     reflect/
 ```
 
-## Codex 설치
+## Installing (Codex)
 
-Codex 사용자는 네 스킬 폴더를 `~/.codex/skills/`로 복사하면 됩니다.
+Codex users can copy the four skill folders to `~/.codex/skills/`.
 
 ### Windows PowerShell
 
@@ -51,9 +73,9 @@ cp -r ./.codex/skills/deep-dive    ~/.codex/skills/
 cp -r ./.codex/skills/reflect      ~/.codex/skills/
 ```
 
-## Claude Code 설치
+## Installing (Claude Code)
 
-기존 Claude Code 배포 방식도 그대로 유지합니다.
+The existing Claude Code distribution method is also preserved.
 
 ### Windows PowerShell
 
@@ -81,14 +103,14 @@ cp ./.claude/commands/deep-dive.md ~/.claude/commands/
 cp ./.claude/commands/reflect.md   ~/.claude/commands/
 ```
 
-## Codex 배포본에서 바뀐 점
+## Codex vs Claude Code differences
 
-- Claude 전용 `/commands` 래퍼를 제거하고 `SKILL.md` 중심 구조로 정리했습니다.
-- `.claude/...` 경로, `Task` 기반 서브에이전트, `AskUserQuestion` 전제를 Codex 흐름에 맞게 바꿨습니다.
-- `blueprint`에는 Codex 기준 문서 템플릿, 설계 원칙, 구조 검증 스크립트를 포함했습니다.
-- `autoresearch`는 Claude Code/Codex 동일 기능 세트를 공유하며, Codex에서는 기본 sequential 실행 + 명시적 delegation 승인 방식을 따릅니다.
-- 네 스킬 모두 `agents/openai.yaml`을 추가해 Codex UI 메타데이터를 함께 배포합니다.
+- Removed the Claude-specific `/commands` wrappers and restructured around `SKILL.md` as the central entry point.
+- Updated `.claude/...` paths, `Task`-based subagents, and `AskUserQuestion` assumptions to fit the Codex flow.
+- `blueprint` includes a Codex-compatible document template, design principles, and a structure validation script.
+- `autoresearch` shares the same feature set across Claude Code and Codex; on Codex it follows a default sequential execution model with explicit delegation approval.
+- All four skills include `agents/openai.yaml` to ship Codex UI metadata alongside the skill.
 
-## 라이선스
+## License
 
 MIT

@@ -14,7 +14,7 @@ Three files, three different jobs. Keep them separate.
 **Per-eval detail:** [Which individual evals passed/failed vs previous]
 **Failing outputs:** [Brief description of what still fails]
 **Human insight:** [If any subjective feedback was given]
-**Git:** [commit hash or "reset --hard HEAD~1"]
+**Git:** [commit hash or "soft reset + checkpoint restore"]
 ```
 
 ## research-log.json — direction shifts only

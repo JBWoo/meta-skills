@@ -17,7 +17,7 @@ The dashboard must:
 
 **If comparative evals are used — add a comparison view** with before/after output pairs and per-dimension verdicts.
 
-Generate as a single self-contained HTML file with inline CSS/JS. Use Chart.js from CDN.
+Generate as a single self-contained HTML file with inline CSS/JS. Prefer zero external dependencies so the dashboard still works over `file://` and in network-restricted environments. If you want charts, use inline SVG or canvas code you write into the file.
 
 ## Serving — no server needed
 

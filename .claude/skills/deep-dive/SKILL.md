@@ -11,7 +11,7 @@ An in-depth interview skill that asks non-obvious, probing questions across all 
 
 ## Execution Flow
 
-1. Read the user's instructions (topic/goal) from `$ARGUMENTS`
+1. Read the user's instructions (topic/goal) from `$ARGUMENTS` (the text the user passed after the skill trigger, e.g., `/deep-dive payment system` → $ARGUMENTS = "payment system")
 2. Scan the current working directory for existing spec/planning documents
 3. **If documents found → present them to the user and confirm which to update**
 4. Conduct a multi-round interview using `AskUserQuestion`
@@ -23,8 +23,10 @@ An in-depth interview skill that asks non-obvious, probing questions across all 
 
 1. Read the `$ARGUMENTS` to understand what the user wants to spec out. If no argument is given, ask what topic to deep-dive into as the first question.
 2. Use `Glob` to scan the current working directory for existing spec or planning documents. Look for patterns such as:
-   - `spec-*.md`, `*-spec.md`
+   - `spec-*.md`, `*-spec.md`, `blueprint-*.md`
    - `*기획*.md`, `*설계*.md`, `*planning*.md`, `*PRD*.md`, `*requirements*.md`
+   - `architecture.md`, `roadmap.md`, `overview.md`, `notes.md`
+   - Always check `CLAUDE.md` and `README.md` directly — these often contain relevant spec-level content regardless of naming
    - Any `.md` file that looks like a design/planning document based on its name
 3. If a matching file is found, read it with `Read` to understand its current content and structure.
 4. **If no documents found** → skip to Step 2 (interview). The decision is implicitly **create new** — Step 4b will apply after the interview.
@@ -44,18 +46,20 @@ An in-depth interview skill that asks non-obvious, probing questions across all 
 Use `AskUserQuestion` to interview the user continuously. Follow these rules:
 
 - **Ask 1–2 questions per round** — never dump many questions at once
-- **Cover all dimensions** — rotate across categories below, don't skip any
+- **Build on previous answers first** — if the last answer opened a specific thread (unexpected constraint, unclear tradeoff, important edge case), follow that thread before moving on. Depth beats breadth when the user signals something important.
+- **Cover all relevant categories** — after each round, check which categories haven't been touched. Skip categories that clearly don't apply to the topic (e.g., a CLI script doesn't need UI/UX questions).
 - **Avoid obvious questions** — never ask "what is the goal?" or "who are the users?" without more depth
-- **Build on previous answers** — each question should reference what was just learned
 - **Continue until complete** — keep going until all critical areas are covered (typically 5–8 rounds)
 
-### Question Categories (rotate through all)
+### Question Categories
 
-1. **Core behavior** — What exactly should it do? What are the happy path and edge cases?
+Not all categories apply to every topic. Skip ones that clearly don't fit (e.g., no UI/UX for a backend-only script). Always cover 1, 4, 5.
+
+1. **Core behavior** *(always)* — What exactly should it do? What are the happy path and edge cases?
 2. **Technical implementation** — What stack, constraints, or existing systems apply?
-3. **UI/UX** — What does the user experience look like? What interactions matter?
-4. **Tradeoffs** — What are you willing to sacrifice? Speed vs. accuracy? Simplicity vs. flexibility?
-5. **Failure modes** — What should happen when things go wrong?
+3. **UI/UX** *(skip for non-interactive tools)* — What does the user experience look like? What interactions matter?
+4. **Tradeoffs** *(always)* — What are you willing to sacrifice? Speed vs. accuracy? Simplicity vs. flexibility?
+5. **Failure modes** *(always)* — What should happen when things go wrong?
 6. **Scale & future** — What does "done" look like? What might need to change later?
 7. **Concerns** — What are you most worried about?
 
@@ -86,10 +90,12 @@ DO NOT re-evaluate. Follow the decision made in Step 1:
 
 3. **Merge rules:**
    - **APPEND**: Add at the end of the matching section
-   - **REVISE**: Keep existing content, add changes with `> ⚠️ Updated:` marker to show what changed and why
+   - **REVISE**: Replace the outdated content directly — do not keep the old text alongside the new. The spec should reflect the current state, not the history of changes. Git blame shows history.
    - **NEW_SECTION**: Insert before the last section (typically "Open Questions") — do not scatter new sections randomly
    - **Untouched content**: Any existing content NOT covered by the interview must remain exactly as-is — do not reformat, rephrase, or reorganize it
    - Use `Edit` tool for section-by-section targeted updates. **Do NOT use `Write` to overwrite the entire file.**
+
+   ⚠️ Do NOT use inline update markers like `> ⚠️ Updated:` or `<!-- changed -->`. These clutter the document over multiple sessions and make the spec unreadable. A spec file should always show the current state cleanly.
 
 4. Tell the user the filename and summarize exactly what was changed.
 

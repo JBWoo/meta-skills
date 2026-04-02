@@ -54,37 +54,64 @@ REQUIRED_STATES = [
 ]
 
 
+STEP_HEADING_RE = re.compile(r"^#### Step \d{2}:", flags=re.MULTILINE)
+FENCED_BLOCK_RE = re.compile(r"```.*?```", flags=re.DOTALL)
+
+
+def strip_fenced_code_blocks(text: str) -> str:
+    return re.sub(FENCED_BLOCK_RE, "", text)
+
+
+def assert_in_order(text: str, items: list[str], issues: list[str], label: str) -> None:
+    cursor = -1
+    for item in items:
+        idx = text.find(item)
+        if idx == -1:
+            issues.append(f"Missing {label}: {item}")
+            continue
+        if idx < cursor:
+            issues.append(f"Out-of-order {label}: {item}")
+        cursor = idx
+
+
+def split_step_blocks(text: str) -> list[str]:
+    matches = list(STEP_HEADING_RE.finditer(text))
+    blocks: list[str] = []
+    for i, match in enumerate(matches):
+        start = match.start()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        blocks.append(text[start:end])
+    return blocks
+
+
 def validate(path: Path) -> tuple[bool, list[str]]:
     if not path.exists():
         return False, [f"File not found: {path}"]
 
     text = path.read_text(encoding="utf-8")
+    text_no_code = strip_fenced_code_blocks(text)
     issues: list[str] = []
 
-    for item in REQUIRED_TOP_HEADERS:
-        if item not in text:
-            issues.append(f"Missing top header: {item}")
+    if not re.fullmatch(r"blueprint-.+\.md", path.name):
+        issues.append("Filename should follow blueprint-<task-name>.md")
 
-    for item in REQUIRED_CONTEXT_SUBHEADERS:
-        if item not in text:
-            issues.append(f"Missing context section: {item}")
-
-    for item in REQUIRED_STEP_FIELDS:
-        if item not in text:
-            issues.append(f"Missing step field: {item}")
+    assert_in_order(text_no_code, REQUIRED_TOP_HEADERS, issues, "top header")
+    assert_in_order(text_no_code, REQUIRED_CONTEXT_SUBHEADERS, issues, "context section")
 
     for item in REQUIRED_STATES:
-        if item not in text:
+        if item not in text_no_code:
             issues.append(f"Missing state token: {item}")
 
-    step_count = len(re.findall(r"^#### Step \d{2}:", text, flags=re.MULTILINE))
-    if step_count < 2:
+    step_blocks = split_step_blocks(text_no_code)
+    if len(step_blocks) < 2:
         issues.append("Require at least two workflow steps using '#### Step NN:' headings")
+    else:
+        for idx, block in enumerate(step_blocks, start=1):
+            for field in REQUIRED_STEP_FIELDS:
+                if field not in block:
+                    issues.append(f"Missing step field in Step {idx:02d}: {field}")
 
-    if "./blueprint-" not in text:
-        issues.append("Final output path should reference ./blueprint-<task-name>.md")
-
-    if "output/step01_" not in text:
+    if "output/step01_" not in text_no_code:
         issues.append("Expected at least one intermediate artifact path using output/stepNN_<name>.<ext>")
 
     return len(issues) == 0, issues

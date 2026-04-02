@@ -1,10 +1,10 @@
 # How to Run the Target Skill
 
-Each experiment requires running the target skill with test inputs and collecting its outputs. In Codex, default to sequential execution in the current agent. Use delegated runs only if the user explicitly asked for delegation, parallel agent work, or subagents.
+Each experiment requires a repeatable run harness. In Codex, "I read the skill and tried to follow it" is not enough. You must be able to say exactly how one run starts, where its outputs go, and how the next run stays comparable.
 
 ## Method 1: Sequential current-agent run (default)
 
-Run the target skill in the current agent from the target project's working directory. This is the default because it avoids unauthorized delegation and is always available.
+Run the target skill in the current agent from the target project's working directory using a written harness. This is the default because it avoids unauthorized delegation and is always available.
 
 Use this mode when:
 - The user did not explicitly authorize subagents
@@ -31,7 +31,6 @@ Example shape:
 ```text
 spawn_agent(
   agent_type="default",
-  task_name="autoresearch_run_01",
   message="Work in /path/to/project. Execute the target skill once with this prompt: <test prompt>. Save every produced artifact under <run-dir> and report only the produced files and notable failures."
 )
 ```
@@ -43,3 +42,4 @@ spawn_agent(
 - If the current agent is not fresh, note the context contamination risk in the changelog or results.
 - If the skill takes longer than 10 minutes per prompt, reduce the test scope (fewer items, simpler sites) rather than increasing timeouts.
 - **Save all outputs into `runs/exp-N/<prompt-id>/`** — copy or move every artifact the skill produces (files, screenshots, generated code, etc.) into the experiment's run folder. Never leave experiment outputs only in the skill's native output directory.
+- Before baseline, write `run-harness.md` with the exact execution protocol. Treat harness drift as a stop condition until revalidated.

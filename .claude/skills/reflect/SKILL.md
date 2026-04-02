@@ -87,7 +87,7 @@ prompt: |
 
   Steps:
   1. Review the PROJECT STATE for repeated actions or manual steps
-  2. Check .claude/skills/ to avoid suggesting skills that already exist
+  2. Check .claude/skills/ AND ~/.claude/skills/ to avoid suggesting skills that already exist
   3. Propose specific automations
 
   Return ONLY a structured list:
@@ -146,7 +146,21 @@ prompt: |
 
 ## Step 3: Phase 2 — Validation (sequential, after all Phase 1 agents complete)
 
-After collecting all 4 results, launch ONE more Task:
+After all 4 Phase 1 agents return, collect their outputs into a single string:
+
+```
+PHASE_1_RESULTS = """
+[paste doc-updater output here]
+
+[paste automation-scout output here]
+
+[paste learning-extractor output here]
+
+[paste followup-suggester output here]
+"""
+```
+
+Then launch ONE more agent, passing this collected string as context:
 
 ```
 subagent_type: general-purpose
@@ -172,25 +186,49 @@ prompt: |
 
 ## Step 4: Consolidate + User Selection
 
-Present the duplicate-checked results clearly, then ask:
+Present the duplicate-checked results clearly, then build a dynamic options list based on what the agents actually found:
 
-```json
-AskUserQuestion({
-  "questions": [{
-    "question": "세션 정리가 완료됐습니다. 어떤 작업을 실행할까요?",
-    "header": "작업 선택",
-    "options": [
-      {"label": "문서 업데이트", "description": "CLAUDE.md 또는 README에 변경 사항 반영"},
-      {"label": "자동화 생성", "description": "반복 패턴을 스킬 또는 스크립트로 만들기"},
-      {"label": "학습 기록 저장", "description": "오늘 배운 것을 노트 파일에 저장"},
-      {"label": "건너뛰기", "description": "결과 확인만 — 별도 작업 없음"}
-    ],
-    "multiSelect": true
-  }]
-})
+- Include **"문서 업데이트"** only if doc-updater returned at least one update suggestion
+- Include **"자동화 생성"** only if automation-scout returned at least one suggestion
+- Include **"학습 기록 저장"** only if learning-extractor returned at least one learning
+- Always include **"건너뛰기"**
+
+Then ask with `AskUserQuestion`, passing only the relevant options (multiSelect: true).
+
+Example (all options present):
+> "세션 정리가 완료됐습니다. 어떤 작업을 실행할까요? (복수 선택 가능)
+> 1. 문서 업데이트 — CLAUDE.md 또는 README에 변경 사항 반영
+> 2. 자동화 생성 — 반복 패턴을 스킬 또는 스크립트로 만들기
+> 3. 학습 기록 저장 — 오늘 배운 것을 노트 파일에 저장
+> 4. 건너뛰기 — 결과 확인만"
+
+Execute only the selected actions. Execution instructions for each:
+
+### 문서 업데이트
+Use the `Edit` tool to apply the doc-updater's suggestions to the target files.
+- Append new content to the appropriate section
+- Do NOT rewrite existing content — add only what changed
+- Tell the user what was updated and in which file
+
+### 자동화 생성
+For each automation suggestion:
+1. Determine type: **skill** → use `skill-creator` if available, otherwise create `.claude/skills/<name>/SKILL.md`; **script** → write to `.claude/scripts/<name>.sh` or `.py`; **hook** → add to `.claude/settings.json` under `hooks`
+2. Keep it minimal — implement only what was identified in the session
+3. Tell the user what was created and where
+
+### 학습 기록 저장
+Append learnings to `~/.claude/learnings.md` (create if it doesn't exist). Format:
+
+```markdown
+## YYYY-MM-DD — [project name]
+- [concept/tool/pattern]: [brief explanation]
+- [concept/tool/pattern]: [brief explanation]
 ```
 
-Execute only the selected actions.
+Tell the user the file path and what was added.
+
+### 건너뛰기
+Do nothing. Confirm to the user that the reflection is complete.
 
 ---
 

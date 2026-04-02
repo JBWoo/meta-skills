@@ -4,7 +4,7 @@ How to write eval criteria that actually improve your skills instead of giving y
 
 ## Table of Contents
 
-1. [The golden rule](#the-golden-rule) — every eval must be binary
+1. [The golden rule](#the-golden-rule) — every eval needs a stable scoring rule
 2. [Assertion category taxonomy](#the-assertion-category-taxonomy) — 6 categories to pull from
 3. [Converting subjective criteria](#converting-subjective-criteria-to-binary-checks) — decompose vibes into checks
 4. [Good evals vs bad evals](#good-evals-vs-bad-evals) — examples by skill type
@@ -18,11 +18,17 @@ How to write eval criteria that actually improve your skills instead of giving y
 
 ## the golden rule
 
-Every eval must be a yes/no question. Not a scale. Not a vibe check. Binary.
+Every eval must have a stable scoring rule. Not a 1-7 vibe scale. Not an ungrounded impression.
 
-Why: Scales compound variability. If you have 4 evals scored 1-7, your total score has massive variance across runs. Binary evals give you a reliable signal.
+Preferred order:
 
-The test: **could two people independently judge the same output and agree?** If not, rewrite it until they could.
+1. Binary pass/fail
+2. Comparative win/tie/loss
+3. Fidelity pass/fail between pipeline stages
+
+Why: arbitrary scales compound variability. Binary, comparative, and fidelity evals can still be reliable as long as the rubric is explicit and repeatable.
+
+The test: **could two different agents score the same pair of outputs and mostly agree?** If not, tighten the rubric.
 
 ---
 

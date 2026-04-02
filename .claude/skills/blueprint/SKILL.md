@@ -9,9 +9,16 @@ description: Agentic system design blueprint generator. Interviews the user to u
 
 Conduct a structured interview to understand the user's automation task, then generate a complete agentic system design document. The deliverable is a single `.md` file ready for use as an implementation reference in Claude Code.
 
+## Before Starting
+
+**Read both reference files before doing anything else.** They contain the document structure and design rules you'll apply in Phase 2. Skip them and the output will be incomplete.
+
+1. Read `references/document-template.md` — the full section-by-section template for the output file
+2. Read `references/design-principles.md` — design rules for agent structure, validation, data transfer, skill vs sub-agent
+
 ## Workflow
 
-### Phase 1: Assess & Interview (max 3 turns)
+### Phase 1: Assess & Interview
 
 Evaluate user input against these four areas. **Ask only about gaps.** If all areas are sufficiently clear, skip directly to Phase 2.
 
@@ -29,20 +36,46 @@ Evaluate user input against these four areas. **Ask only about gaps.** If all ar
 
 ### Phase 2: Generate Design Document
 
-Once requirements are clear, produce the design document. Save as `blueprint-<task-name>.md` in the current working directory.
+Once requirements are clear, map interview findings to document sections before writing:
 
-See `references/document-template.md` for the full document structure and section details.
-See `references/design-principles.md` for design rules to apply while authoring.
+| Interview finding | → Document section |
+|---|---|
+| Why this is needed, what problem it solves | § 1. 작업 컨텍스트 › 배경 및 목적 |
+| What's in scope / out of scope | § 1. 작업 컨텍스트 › 범위 |
+| Input format, output format, trigger | § 1. 작업 컨텍스트 › 입출력 정의 |
+| Technical constraints, API limits | § 1. 작업 컨텍스트 › 제약조건 |
+| Step-by-step process, branching logic | § 2. 워크플로우 정의 |
+| What the agent decides vs what code handles | § 2. LLM 판단 vs 코드 처리 구분 |
+| What tools/APIs are used | § 3. 스킬/스크립트 목록 |
+| Single vs multi-agent preference | § 3. 에이전트 구조 |
+| Failure conditions, retry expectations | § 2. 단계별 상세 › 실패 시 처리 |
+
+Fill every section using the template in `references/document-template.md`. Apply design rules from `references/design-principles.md`.
+
+Save as `blueprint-<task-name>.md` in the current working directory.
 
 **Output rules:**
 - CLAUDE.md, AGENT.md, skill file contents are **NOT written** — only their names and roles
 - Implementation spec covers structure and responsibilities, not code or prompts
 - Every workflow step must have: success criteria, validation method, failure handling
-- 스킬 생성이 포함된 설계서에는 반드시 **skill-creator 스킬 사용 의무** 섹션을 포함할 것 (상세 규칙은 `references/design-principles.md`의 "Skill Creation Standards" 참조)
+- **If the design includes any skills: include a "스킬 생성 규칙" section** requiring `skill-creator` usage (see `references/design-principles.md` › Skill Creation Standards for the exact text)
+- **If `skill-creator` is not installed:** note in the document that skills should be created following SKILL.md frontmatter standards (name, description, 500-line limit, references/ for large content)
+
+**Completeness check before saving** — confirm each item is filled:
+- [ ] Every workflow step has success criteria + validation method + failure handling
+- [ ] LLM vs script responsibility table is filled
+- [ ] Folder structure is defined
+- [ ] No table cell left blank or "TBD"
 
 ### Phase 3: Review
 
-After presenting the document, ask: "수정하거나 보완할 부분이 있나요?"
+After presenting the document, summarize the key design decisions made during the interview:
+
+- Agent structure choice (single vs multi) and the reason
+- Any tradeoffs locked in (e.g., "LLM judges step X because rule-based detection was too fragile")
+- Any constraints that shaped the design
+
+Then ask: "Do these decisions match your intent? Let me know if there's anything you'd like to change."
 
 Apply any requested changes and re-confirm.
 
