@@ -42,19 +42,23 @@ Read the following two reference documents and apply them faithfully.
 - `references/document-template.md`
 - `references/design-principles.md`
 
+If you want a calibration sample for specificity and decision framing, also skim:
+
+- `references/example-blueprint.md`
+
 **Interview findings → document section mapping (confirm before writing):**
 
 | Interview finding | → Document section |
 |---|---|
-| Why it is needed, what problem it solves | §1 배경 및 목적 |
-| What is in / out of scope | §1 범위 |
-| Input format, output format, trigger | §1 입출력 정의 |
-| Technical constraints, API limits | §1 제약조건 |
-| Step-by-step processing, branch conditions | §2 워크플로우 단계별 상세 |
-| Agent judgment vs script processing | §2 LLM 판단 vs 코드 처리 |
-| Tools / APIs used | §3 스킬/스크립트 목록 |
-| Single vs multi-agent | §3 에이전트 구조 |
-| Failure conditions, retry expectations | §2 단계별 상세 › 실패 시 처리 |
+| Why it is needed, what problem it solves | `## 0. Goals and Deliverables` + `### Background` + `### Objective` |
+| What is in / out of scope | `### Out of Scope` + `### Scope` |
+| Input format, output format, trigger | `### Inputs` + `### Outputs` + `### End-to-End Flow` |
+| Technical constraints, API limits | `### Constraints` |
+| Step-by-step processing, branch conditions | `#### Step NN` blocks + `### State Model` |
+| Agent judgment vs script processing | `### LLM vs Code Boundary` |
+| Tools / APIs used | `### Skill and Script Inventory` |
+| Single vs multi-agent | `### Recommended Folder Structure` + `### AGENTS.md Responsibilities` |
+| Failure conditions, retry expectations | `#### Step NN` → `7) Failure Handling:` |
 
 Writing rules:
 

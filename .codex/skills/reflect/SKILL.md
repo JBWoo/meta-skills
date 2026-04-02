@@ -1,6 +1,6 @@
 ---
 name: reflect
-description: A skill for wrapping up a Codex work session. Summarizes changes made this session, identifies doc update points, automation ideas, learnings, and next actions all at once. Use when the user asks for "/reflect", "reflect", "session reflect", "end session", or wants a Codex session wrap-up.
+description: A skill for wrapping up a Codex work session. Summarizes changes made this session, identifies doc update points, automation ideas, learnings, and next actions all at once. Use when the user asks for "/reflect", "reflect", "session reflect", "end session", "세션 정리", "오늘 한 거 정리", or "마무리", or wants a Codex session wrap-up after substantial work.
 metadata:
   short-description: Summarize a Codex session and next actions
 ---
@@ -9,76 +9,101 @@ metadata:
 
 ## Overview
 
-Wrap up a Codex session by summarizing changes and follow-up actions.
+Wrap up a Codex work session by inspecting what actually changed, extracting the highest-signal follow-ups, and then optionally applying selected updates.
 
-- Do not replicate the Claude Code `Task`-based parallel subagent flow
-- Investigate files and changes directly within Codex, and integrate results yourself
-- Default behavior is `report first, edit only when needed`
+- Do not replicate Claude Code `Task`-based subagent orchestration
+- Investigate files and diffs directly in the current agent
+- Use `multi_tool_use.parallel` only for independent reads
+- Default behavior is `report first, edit only when useful`
 
 ## Workflow
 
 ### 1. Inspect Session State
 
-Start by briefly summarizing the current state:
+Collect concrete session evidence first:
 
-- Current workspace file structure
+- Current workspace structure
 - Files created or modified in this session
-- Scope of changes shown by `git status --short` or a relevant diff
-- Presence of key documents (`README.md`, `AGENTS.md`, recent spec/design docs)
+- Scope of changes from `git status --short` and a relevant diff
+- Presence of key documents such as `README.md`, `AGENTS.md`, recent specs, or blueprints
 
-Compress this information into a one- or two-sentence `PROJECT_STATE` to use as an internal reference.
+Compress this into a short internal `PROJECT_STATE` summary before moving on.
 
 ### 2. Produce Four Analyses
 
-Check all four categories below:
+Analyze the session in four categories:
 
 1. Docs to update
-   - Which documents do not yet reflect the actual changes made
+   - Which docs no longer reflect the implemented behavior
 2. Automation ideas
-   - Which repetitive tasks could be extracted as a skill, script, or hook
+   - Which repeated manual steps could become a skill, script, or hook
 3. Learnings
-   - New patterns, constraints, or tool usage confirmed in this session
+   - What new constraints, techniques, or patterns became clear
 4. Next actions
-   - 1–3 immediate follow-up tasks to continue right now
+   - The 1-3 most immediate follow-up tasks with the best payoff
 
 Rules:
 
-- Base entries only on what was actually done
-- Merge duplicate items into one
-- Discard items with low importance or low actionability
+- Base items only on actual work performed
+- Merge duplicates across categories
+- Drop low-value or vague items
+- Keep outputs concise and actionable
 
-### 3. Decide Whether to Apply Changes
+### 3. Present Summary and Ask What to Apply
 
-If the user explicitly wants doc updates applied, apply them immediately.
+Report the four analysis buckets first.
 
-Otherwise, show the summary first and confirm in one sentence which follow-up actions to take:
+If the user explicitly asked to apply updates, do so immediately.
 
-- 문서 반영
-- 자동화 아이디어 기록
-- 학습 노트 기록
-- 요약만 제공
+Otherwise ask which action(s) to take next. Prefer `request_user_input` when there are real choices to make.
 
-### 4. Apply Updates Carefully
+Possible actions:
 
-Rules for follow-up edits:
+- `문서 반영`
+- `자동화 아이디어 기록`
+- `학습 기록 저장`
+- `요약만 제공`
+
+Only show actions that are actually available, except `요약만 제공`, which is always valid.
+
+### 4. Apply Follow-up Changes Carefully
+
+Rules for edits:
 
 - If an existing document is relevant, update it in place
-- Do not create unrelated documents
-- Use `apply_patch` for file modifications
+- Do not create unrelated files
+- Use `apply_patch` for modifications
+- Keep changes narrow and directly tied to the session
 
-**When saving learning records:** Append to `~/.codex/learnings.md` in the format below (create the file if it doesn't exist).
+#### 4a. Docs to update
+
+- Update the smallest relevant existing document
+- Append or revise only the sections justified by the session
+- Do not rewrite unrelated sections
+
+#### 4b. Automation ideas
+
+For each accepted automation:
+
+- Skill -> create `.codex/skills/<name>/SKILL.md`
+- Script -> create `scripts/<name>.py`
+- If `skill-creator` is available and the user wants a real skill scaffold, use it; otherwise create the minimal required structure
+
+Keep automation suggestions narrow. Do not overbuild.
+
+#### 4c. Learnings
+
+Append to `~/.codex/learnings.md` (create it if missing) in this format:
 
 ```markdown
-## YYYY-MM-DD — [project name]
-- [개념/도구/패턴]: [한 줄 설명]
-- [개념/도구/패턴]: [한 줄 설명]
+## YYYY-MM-DD - [project name]
+- [concept/tool/pattern]: [one-line explanation]
+- [concept/tool/pattern]: [one-line explanation]
 ```
-
-**When creating automations:** For skills, create `.codex/skills/<name>/SKILL.md` and use `skill-creator` if available. For scripts, create `.codex/scripts/<name>.py`.
 
 ### 5. Final Output Format
 
-Present results concisely in this order:
+Present results in this order:
 
 1. Session summary
 2. Docs to update
@@ -86,9 +111,10 @@ Present results concisely in this order:
 4. Learnings
 5. Next actions
 
-If any files were modified, include the file paths alongside the output.
+If any files were modified, include the file paths.
 
 ## Notes
 
-- When running this skill in Codex, do not assume a separate subagent or a dedicated `AskUserQuestion` tool is available.
-- Bundle only the necessary parallel read operations with `multi_tool_use.parallel`; handle all judgment and integration in the main flow.
+- This skill is useful after substantial implementation work, not short Q&A
+- Prefer concrete evidence from the repo over memory or vague recap
+- Reflection quality depends on selecting only high-signal items, not producing a long checklist

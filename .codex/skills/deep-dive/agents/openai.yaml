@@ -1,4 +1,4 @@
 interface:
   display_name: "Deep Dive"
-  short_description: "Deep requirement interviews and detailed spec drafting"
-  default_prompt: "Use $deep-dive to interview me and turn this idea into a detailed spec."
+  short_description: "Deep requirements interview and spec drafting"
+  default_prompt: "Use $deep-dive to inspect the workspace, interview me in rounds, and update the best matching spec unless I explicitly ask for a new one."
