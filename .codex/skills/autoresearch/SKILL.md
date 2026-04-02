@@ -21,9 +21,9 @@ Take an existing skill, define what good output looks like, then run a loop that
 4. Keeps improvements and discards regressions
 5. Repeats until a stop condition is reached
 
-Expected outputs:
+Expected outputs for the target skill path:
 
-- improved `SKILL.md`
+- improved target skill file
 - `results.tsv`
 - `changelog.md`
 - `research-log.json`
@@ -33,7 +33,7 @@ Expected outputs:
 
 Do not block on a perfect spec, but do establish a minimum viable experiment contract.
 
-1. **Target skill(s)** — exact path to `SKILL.md`; for a pipeline, list all skills in order
+1. **Target skill(s)** — exact path to the target `SKILL.md`; for a pipeline, list all skills in order
 2. **Pipeline mode** — single skill or multi-skill pipeline; default is single
 3. **Test inputs** — 3-5 prompts or scenarios; if missing, draft a starter set and state the assumption
 4. **Eval criteria** — 3-6 binary checks plus 1-2 comparative quality checks where possible
@@ -57,7 +57,7 @@ Execution mode rules:
 
 Before changing anything:
 
-1. Read the target `SKILL.md`
+1. Read the target skill file at the exact path captured in the experiment contract
 2. Read linked files in `references/` and relevant helpers in `scripts/`
 3. Identify the core job, workflow, output format, and anti-patterns
 4. Note any existing quality checks already embedded in the skill
@@ -104,14 +104,15 @@ Baseline is experiment `#0`.
 
 1. Create `autoresearch-[skill-name]/` and `runs/baseline/`
 2. Create `results.json`, `results.tsv`, `changelog.md`, `research-log.json`, `dashboard.html`, and `run-harness.md`
-3. Back up the original skill as `SKILL.md.baseline`
+3. Back up the original skill as `<target-skill-filename>.baseline` in the run folder
 4. Run the skill as-is with the selected test inputs
 5. Copy **all outputs** into `runs/baseline/<prompt-id>/`
 6. Score every output against every eval
 7. Record the baseline score
 8. Create a git branch: `autoresearch/[skill-name]` (add `-N` suffix if needed)
 9. Add the autoresearch folder to `.gitignore`
-10. Commit the baseline skill: `git add SKILL.md && git commit -m "autoresearch: baseline ([score]/[max])"`
+10. Commit the baseline skill files explicitly by path, for example:
+    `git add <target-skill-path> .gitignore && git commit -m "autoresearch: baseline ([score]/[max])"`
 
 After baseline, choose one mode explicitly:
 
@@ -178,13 +179,13 @@ Loop steps:
 - `KEEP` -> the commit stays as the new baseline
 - `DISCARD` -> use a non-destructive rollback:
   - `git reset --soft HEAD~1`
-  - restore only the checkpointed files to their pre-experiment contents
+  - restore only the checkpointed files to their pre-experiment contents by explicit path
 - Never use `git reset --hard` or any broad revert that can destroy unrelated user changes
 - If the repo was already dirty, record which files were pre-modified and exclude unrelated work from rollback
 
 ### KEEP vs DISCARD Rules
 
-Record `skill_lines` for every experiment with `wc -l SKILL.md`.
+Record `skill_lines` for every experiment with `wc -l <target-skill-path>`.
 
 Use these defaults unless the user defined a stricter rule:
 
@@ -208,7 +209,7 @@ Every 5th experiment, try a deletion mutation.
 
 - Remove recently added rules that may not contribute to score
 - If the score holds, keep the deletion
-- If `SKILL.md` grows past 200% of baseline size, record a bloat warning
+- If the target skill file grows past 200% of baseline size, record a bloat warning
 
 ### Stop Conditions
 
@@ -275,7 +276,7 @@ autoresearch-[skill-name]/
 ├── dashboard.html
 ├── changelog.md
 ├── research-log.json
-├── SKILL.md.baseline
+├── <target-skill-filename>.baseline
 ├── run-harness.md
 └── runs/
     ├── baseline/
@@ -289,7 +290,7 @@ If `autoresearch-[skill-name]/` already exists:
 
 1. Read `changelog.md` and `research-log.json`
 2. Read `results.json` to find the best score and next experiment number
-3. Read `SKILL.md.baseline`
+3. Read `<target-skill-filename>.baseline`
 4. Re-checkout the autoresearch branch if needed
 5. Re-validate the run harness before resuming
 6. Continue from the next experiment number

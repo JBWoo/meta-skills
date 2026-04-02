@@ -1,6 +1,6 @@
 ---
 name: autoresearch
-description: Autonomously optimize any Claude Code skill by running it repeatedly, scoring outputs against evals (binary for rules + comparative for quality), mutating the skill's prompt and reference assets, and keeping improvements. Based on Karpathy's autoresearch methodology. Use this skill whenever the user mentions optimizing a skill, improving a skill, running autoresearch, making a skill better, self-improving a skill, benchmarking a skill, evaluating a skill, running evals on a skill, or any request to iteratively test and refine a skill — even if they don't use the word "autoresearch" explicitly. Also trigger on 스킬 개선, 스킬 최적화, 스킬 벤치마크, 스킬 평가. Outputs an improved SKILL.md, a results log, a changelog, and a research log of meaningful direction shifts.
+description: Autonomously optimize any Claude Code skill by running it repeatedly, scoring outputs against evals (binary for rules + comparative for quality), mutating the skill's prompt and reference assets, and keeping improvements. Based on Karpathy's autoresearch methodology. Use this skill whenever the user mentions optimizing a skill, improving a skill, running autoresearch, making a skill better, self-improving a skill, benchmarking a skill, evaluating a skill, running evals on a skill, or any request to iteratively test and refine a skill — even if they don't use the word "autoresearch" explicitly. Also trigger on 스킬 개선, 스킬 최적화, 스킬 벤치마크, 스킬 평가. Outputs an improved target skill file, a results log, a changelog, and a research log of meaningful direction shifts.
 ---
 
 # Autoresearch for Skills
@@ -15,13 +15,13 @@ This skill adapts Andrej Karpathy's autoresearch methodology (autonomous experim
 
 Run a loop: generate outputs → score against evals → mutate the skill → keep improvements → repeat.
 
-**Output:** An improved SKILL.md + `results.tsv` + `changelog.md` + `research-log.json` + live HTML dashboard.
+**Output:** An improved target skill file + `results.tsv` + `changelog.md` + `research-log.json` + live HTML dashboard.
 
 ---
 
 ## project setup (required)
 
-autoresearch modifies SKILL.md on every experiment. To prevent Claude Code from prompting for approval each time, add the following permissions to `.claude/settings.json` at the project root.
+autoresearch modifies the target skill file on every experiment. To prevent Claude Code from prompting for approval each time, add the following permissions to `.claude/settings.json` at the project root.
 
 ```json
 {
@@ -38,7 +38,7 @@ autoresearch modifies SKILL.md on every experiment. To prevent Claude Code from 
 
 The project-local paths (`.claude/skills/**`) cover skills in this repo and are safe to commit. If you're optimizing a globally installed skill (`~/.claude/skills/`), also add the global paths locally — but do not commit them, as they grant broad write access to all installed skills on any collaborator's machine.
 
-If `.claude/settings.json` already exists, add only the entries you need to the `permissions.allow` array. Without these permissions, autoresearch will require manual approval every time it modifies SKILL.md, which breaks the autonomous loop.
+If `.claude/settings.json` already exists, add only the entries you need to the `permissions.allow` array. Without these permissions, autoresearch will require manual approval every time it modifies the target skill file, which breaks the autonomous loop.
 
 ---
 
@@ -46,7 +46,7 @@ If `.claude/settings.json` already exists, add only the entries you need to the 
 
 **STOP. Do not run any experiments until all fields below are confirmed with the user.**
 
-1. **Target skill(s)** — Which skill to optimize? (exact path to SKILL.md). For pipelines, list all skills in execution order.
+1. **Target skill(s)** — Which skill to optimize? (exact path to the target `SKILL.md`). For pipelines, list all skills in execution order.
 2. **Pipeline mode** — Single skill or multi-skill pipeline? Default: single. See `references/pipeline-guide.md` for pipeline details.
 3. **Test inputs** — 3-5 different prompts/scenarios covering different use cases. See `references/eval-guide.md` (Test prompt design section) for what makes a good test input.
 4. **Eval criteria** — Binary checks for rules (3-6) + comparative checks for quality dimensions (0-5). See `references/eval-guide.md`.
@@ -63,8 +63,8 @@ If the user provides an `evals.json` file, use that instead of asking for items 
 
 Before changing anything, read and understand the target skill completely.
 
-1. Read the full SKILL.md file
-2. Read any files in `references/` that the skill links to
+1. Read the full target skill file
+2. Read any files in `references/` that the target skill links to
 3. Identify the skill's core job, process steps, and output format
 4. Note any existing quality checks or anti-patterns already in the skill
 
@@ -169,7 +169,7 @@ Do NOT create a new folder or re-establish baseline. Continue from the previous 
 
 1. Read `changelog.md` and `research-log.json` to understand what was already tried
 2. Load `results.json` to find the current best score and next experiment number
-3. Read `SKILL.md.baseline` to understand the original starting point
+3. Read `<target-skill-filename>.baseline` to understand the original starting point
 4. If autoresearch branch exists, `git checkout autoresearch/[skill-name]`
 5. Resume the experiment loop from where it left off — skip directly to step 6 or step 7 as appropriate
 6. New experiment numbers continue from the last one (e.g., if last was exp-7, next is exp-8)
@@ -182,12 +182,12 @@ Run the skill AS-IS before changing anything. This is experiment #0.
 
 1. Create `autoresearch-[skill-name]/` with `runs/baseline/`
 2. Create `results.json`, `changelog.md`, `research-log.json`, `dashboard.html`, `run-harness.md` → open dashboard
-3. Back up original SKILL.md as `SKILL.md.baseline`
+3. Back up the original skill as `<target-skill-filename>.baseline`
 4. Run the skill with test inputs, copy all outputs into `runs/baseline/<prompt-id>/`
 5. Score every output against every eval, record baseline score
 6. `git checkout -b autoresearch/[skill-name]` (if branch already exists, use `-N` suffix)
 7. Add `autoresearch-[skill-name]/` to `.gitignore` (logs accumulate independently of rollbacks)
-8. `git add SKILL.md && git commit -m "autoresearch: baseline ([score]/[max])"`
+8. `git add <target-skill-path> .gitignore && git commit -m "autoresearch: baseline ([score]/[max])"`
 
 **IMPORTANT:** If baseline is 90%+, confirm with the user whether further optimization is worthwhile.
 
@@ -204,13 +204,13 @@ The first 3 experiments run with human review. This is where subjective judgment
 **For each human-reviewed experiment:**
 
 1. **Analyze failures** and form a hypothesis (same as step 7)
-2. **Make ONE change** to SKILL.md
-3. **Commit the change:** `git add SKILL.md && git commit -m "autoresearch: [one-line description]"`
+2. **Make ONE change** to the target skill file
+3. **Commit the change:** `git add <mutated-files> && git commit -m "autoresearch: [one-line description]"`
 4. **Run the experiment** and score it
 5. **Present results** showing: the change and why, before/after score, 2-3 sample outputs, keep/discard recommendation
 6. **Ask the user:** "Does this direction feel right?" / "Anything the evals aren't catching?"
 7. **If subjective feedback is given**, note it in changelog.md as `[HUMAN INSIGHT]` and incorporate into SKILL.md. Do NOT add it as a new eval.
-8. **Keep or discard** (same rules as step 7). DISCARD → check for unrelated uncommitted changes first (`git status --porcelain`). If any exist outside `SKILL.md` and `references/`, stash them: `git stash`. Then `git reset --soft HEAD~1`. Restore only the mutated files: `git restore SKILL.md` (and any reference files changed in this experiment). Then `git stash pop` if you stashed.
+8. **Keep or discard** (same rules as step 7). DISCARD → check for unrelated uncommitted changes first (`git status --porcelain`). If any exist outside the checkpointed target files, stash them: `git stash`. Then `git reset --soft HEAD~1`. Restore only the mutated files by explicit path, for example `git restore <target-skill-path> <reference-path>`. Then `git stash pop` if you stashed.
 9. **Log the result** with status `human-reviewed`.
 
 **After 3 human-reviewed experiments (or "go auto"):** Switch to auto mode. Tell the user: "Switching to auto mode. Check the dashboard anytime."
@@ -231,15 +231,15 @@ This is the core autoresearch loop. Once started, run autonomously until stopped
 
 3. **Make the change.** Edit the target file(s) at the chosen mutation level.
 
-4. **Commit the change:** `git add SKILL.md && git commit -m "autoresearch: [one-line description]"`
+4. **Commit the change:** `git add <mutated-files> && git commit -m "autoresearch: [one-line description]"`
 
 5. **Run the experiment.** Execute the skill with the test inputs. **Save all outputs into `runs/exp-N/`** — copy or move every artifact the skill produces into `runs/exp-N/<prompt-id>/` so every experiment is self-contained and comparable.
 
-6. **Score it.** Run every output through every eval. Calculate total score. Measure `skill_lines` with `wc -l SKILL.md`.
+6. **Score it.** Run every output through every eval. Calculate total score. Measure `skill_lines` with `wc -l <target-skill-path>`.
 
 7. **Decide: keep or discard.**
 
-   Consider line count changes in SKILL.md alongside the score:
+   Consider line count changes in the target skill file alongside the score:
 
    | Score change | Line count change | Decision |
    |-----------|-----------|------|
@@ -252,7 +252,7 @@ This is the core autoresearch loop. Once started, run autonomously until stopped
    When two versions have the same score, always prefer the shorter one.
 
    - **KEEP** → keep this commit. It is the new baseline.
-   - **DISCARD** → check for unrelated uncommitted changes first (`git status --porcelain`). If any exist outside `SKILL.md` and `references/`, stash them: `git stash`. Then `git reset --soft HEAD~1`. Restore only the mutated files: `git restore SKILL.md` (and any reference files changed in this experiment). Then `git stash pop` if you stashed.
+   - **DISCARD** → check for unrelated uncommitted changes first (`git status --porcelain`). If any exist outside the checkpointed target files, stash them: `git stash`. Then `git reset --soft HEAD~1`. Restore only the mutated files by explicit path. Then `git stash pop` if you stashed.
 
    **Individual eval regression detection:** Even if the total score goes up, strongly consider DISCARD if an eval that previously passed now fails. A gain in one area that hides a regression in another degrades the skill's long-term quality.
 
@@ -264,7 +264,7 @@ This is the core autoresearch loop. Once started, run autonomously until stopped
 
 ### Periodic deletion experiments
 
-Every 5th experiment, intentionally attempt a "deletion mutation." Find recently added rules that are not actually contributing to the score and remove them. If the score holds after removing a rule, that is the best possible experiment result. If SKILL.md has grown to more than 200% of its baseline size, record a warning in the changelog.
+Every 5th experiment, intentionally attempt a "deletion mutation." Find recently added rules that are not actually contributing to the score and remove them. If the score holds after removing a rule, that is the best possible experiment result. If the target skill file has grown to more than 200% of its baseline size, record a warning in the changelog.
 
 ### stop conditions
 
@@ -357,7 +357,7 @@ autoresearch-[skill-name]/
 ├── results.tsv             # raw score log with skill_lines column
 ├── changelog.md            # detailed log of every mutation
 ├── research-log.json       # direction shifts and strategic patterns only
-├── SKILL.md.baseline       # original skill before optimization
+├── <target-skill-filename>.baseline       # original skill before optimization
 ├── run-harness.md          # repeatable procedure for executing the skill
 └── runs/                   # one folder per experiment
     ├── baseline/
@@ -365,7 +365,7 @@ autoresearch-[skill-name]/
     └── exp-N/
 ```
 
-Plus the improved SKILL.md saved back to its original location.
+Plus the improved target skill saved back to its original location.
 The git branch `autoresearch/[skill-name]` retains a linear history of all accepted mutations.
 
 ---
@@ -383,14 +383,14 @@ A good autoresearch run:
 1. **Started with a baseline** — never changed anything before measuring
 2. **Defined a run harness** — a repeatable execution procedure was written down before any experiment ran
 3. **Used appropriate eval types** — binary for rules, comparative for quality, fidelity for pipelines; at least 50% Tier 1-2 evals
-3. **Got human input early** — direction validated before going autonomous
-4. **Mutated at the right level** — L1 for rules, L2 for assets, L3 for eval calibration
-5. **Kept a complete log** — every experiment recorded with skill_lines
-6. **Used git ratcheting** — each mutation committed, discards reset, clean linear history
-7. **Maintained simplicity** — prompt didn't bloat; periodic deletion experiments ran
-8. **Maintained a research log** — direction shifts captured for future models
-9. **Reported both axes** — binary pass rate + comparative win rate shown separately
-10. **Didn't overfit** — the skill got better at the actual job, not just at passing tests
-11. **Quality improved, not just compliance** — before/after comparisons confirm real improvement
+4. **Got human input early** — direction validated before going autonomous
+5. **Mutated at the right level** — L1 for rules, L2 for assets, L3 for eval calibration
+6. **Kept a complete log** — every experiment recorded with skill_lines
+7. **Used git ratcheting** — each mutation committed, discards reset, clean linear history
+8. **Maintained simplicity** — prompt didn't bloat; periodic deletion experiments ran
+9. **Maintained a research log** — direction shifts captured for future models
+10. **Reported both axes** — binary pass rate + comparative win rate shown separately
+11. **Didn't overfit** — the skill got better at the actual job, not just at passing tests
+12. **Quality improved, not just compliance** — before/after comparisons confirm real improvement
 
 If the skill passes all evals but actual output quality hasn't improved — the evals are bad, not the skill. Go to "False positive tracking" in the After the Run section and fix the evals.

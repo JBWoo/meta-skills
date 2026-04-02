@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Minimal structural validator for Codex blueprint documents.
+Minimal structural validator for Claude blueprint documents.
 
 Usage:
-  python .codex/skills/blueprint/scripts/validate_blueprint_doc.py ./blueprint-my-task.md
+  python .claude/skills/blueprint/scripts/validate_blueprint_doc.py ./blueprint-my-task.md
 """
 
 from __future__ import annotations
@@ -14,47 +14,37 @@ from pathlib import Path
 
 
 REQUIRED_TOP_HEADERS = [
-    "## 0. Goals and Deliverables",
-    "## 1. Working Context",
-    "## 2. Workflow Definition",
-    "## 3. Implementation Spec",
-    "## 4. Validation Checklist",
+    "## 1. 작업 컨텍스트",
+    "## 2. 워크플로우 정의",
+    "## 3. 구현 스펙",
 ]
 
 REQUIRED_CONTEXT_SUBHEADERS = [
-    "### Background",
-    "### Objective",
-    "### Scope",
-    "### Inputs",
-    "### Outputs",
-    "### Constraints",
-    "### Terms",
+    "### 배경 및 목적",
+    "### 범위",
+    "### 입출력 정의",
+    "### 제약조건",
+    "### 용어 정의",
 ]
 
 REQUIRED_STEP_FIELDS = [
-    "1) Step Goal:",
-    "2) Input / Output:",
-    "3) LLM Decision Area:",
-    "4) Code Processing Area:",
-    "5) Success Criteria:",
-    "6) Validation Method:",
-    "7) Failure Handling:",
-    "8) Skills / Scripts:",
-    "9) Intermediate Artifact Rule:",
+    "- **처리 주체**:",
+    "- **입력**:",
+    "- **처리 내용**:",
+    "- **출력**:",
+    "- **성공 기준**:",
+    "- **검증 방법**:",
+    "- **실패 시 처리**:",
 ]
 
-REQUIRED_STATES = [
-    "`COLLECTING_REQUIREMENTS`",
-    "`PLANNING`",
-    "`RUNNING_SCRIPT`",
-    "`VALIDATING`",
-    "`NEEDS_USER_INPUT`",
-    "`DONE`",
-    "`FAILED`",
+REQUIRED_IMPL_SUBHEADERS = [
+    "### 폴더 구조",
+    "### 스킬/스크립트 목록",
+    "### 스킬 생성 규칙",
 ]
 
 
-STEP_HEADING_RE = re.compile(r"^#### Step \d{2}:", flags=re.MULTILINE)
+STEP_HEADING_RE = re.compile(r"^#### Step \d+:", flags=re.MULTILINE)
 FENCED_BLOCK_RE = re.compile(r"```.*?```", flags=re.DOTALL)
 
 
@@ -98,21 +88,25 @@ def validate(path: Path) -> tuple[bool, list[str]]:
     assert_in_order(text_no_code, REQUIRED_TOP_HEADERS, issues, "top header")
     assert_in_order(text_no_code, REQUIRED_CONTEXT_SUBHEADERS, issues, "context section")
 
-    for item in REQUIRED_STATES:
-        if item not in text_no_code:
-            issues.append(f"Missing state token: {item}")
+    assert_in_order(text_no_code, REQUIRED_IMPL_SUBHEADERS, issues, "implementation section")
 
     step_blocks = split_step_blocks(text_no_code)
     if len(step_blocks) < 2:
-        issues.append("Require at least two workflow steps using '#### Step NN:' headings")
+        issues.append("Require at least two workflow steps using '#### Step N:' headings")
     else:
         for idx, block in enumerate(step_blocks, start=1):
             for field in REQUIRED_STEP_FIELDS:
                 if field not in block:
                     issues.append(f"Missing step field in Step {idx:02d}: {field}")
 
-    if "output/step01_" not in text_no_code:
-        issues.append("Expected at least one intermediate artifact path using output/stepNN_<name>.<ext>")
+    if "### 상태 전이" not in text_no_code:
+        issues.append("Missing workflow section: ### 상태 전이")
+
+    if "### LLM 판단 vs 코드 처리 구분" not in text_no_code:
+        issues.append("Missing workflow section: ### LLM 판단 vs 코드 처리 구분")
+
+    if "skill-creator" not in text_no_code:
+        issues.append("Missing required skill-creator usage rule")
 
     return len(issues) == 0, issues
 

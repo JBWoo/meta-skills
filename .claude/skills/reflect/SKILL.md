@@ -223,7 +223,7 @@ Use the `Edit` tool to apply the doc-updater's suggestions to the target files.
 
 ### 자동화 생성
 For each automation suggestion:
-1. Determine type: **skill** → use `skill-creator` if available, otherwise create `.claude/skills/<name>/SKILL.md`; **script** → write to `.claude/scripts/<name>.sh` or `.py`; **hook** → add to `.claude/settings.json` under `hooks`
+1. Determine type: **skill** → use `skill-creator` if available, otherwise create `.claude/skills/<name>/SKILL.md`; **script** → write to `scripts/<name>.sh` or `scripts/<name>.py`; **hook** → add to `.claude/settings.json` under `hooks`
 2. Keep it minimal — implement only what was identified in the session
 3. Tell the user what was created and where
 

@@ -9,10 +9,10 @@ A collection of meta skills for designing agent systems, clarifying requirements
 
 | Skill | Role | Claude Code | Codex |
 |---|---|---|---|
-| `blueprint` | Design document for automation/agent systems | `/blueprint` command + skill | `blueprint` 또는 `$blueprint` |
-| `deep-dive` | Multi-round interview to produce a detailed spec document | `/deep-dive` command + skill | `deep-dive` 또는 `$deep-dive` |
-| `reflect` | Summarize a work session, identify doc update points, surface next actions | `/reflect` command + skill | `reflect` 또는 `$reflect` |
-| `autoresearch` | Automated skill optimization (iterative runs + evaluation + prompt mutation) | `/autoresearch` skill | `autoresearch` 또는 `$autoresearch` |
+| `blueprint` | Design document for automation/agent systems | `blueprint` skill | `blueprint` 또는 `$blueprint` |
+| `deep-dive` | Multi-round interview to produce a detailed spec document | `deep-dive` skill | `deep-dive` 또는 `$deep-dive` |
+| `reflect` | Summarize a work session, identify doc update points, surface next actions | `reflect` skill | `reflect` 또는 `$reflect` |
+| `autoresearch` | Automated skill optimization (iterative runs + evaluation + prompt mutation) | `autoresearch` skill | `autoresearch` 또는 `$autoresearch` |
 
 ## Skill Workflow
 
@@ -40,7 +40,6 @@ blueprint → deep-dive → [implement] → autoresearch → reflect
 
 ```text
 .claude/
-  commands/
   skills/
 
 .codex/
@@ -84,10 +83,6 @@ Copy-Item -Recurse .\.claude\skills\autoresearch "$env:USERPROFILE\.claude\skill
 Copy-Item -Recurse .\.claude\skills\blueprint   "$env:USERPROFILE\.claude\skills\"
 Copy-Item -Recurse .\.claude\skills\deep-dive   "$env:USERPROFILE\.claude\skills\"
 Copy-Item -Recurse .\.claude\skills\reflect     "$env:USERPROFILE\.claude\skills\"
-
-Copy-Item .\.claude\commands\blueprint.md  "$env:USERPROFILE\.claude\commands\"
-Copy-Item .\.claude\commands\deep-dive.md  "$env:USERPROFILE\.claude\commands\"
-Copy-Item .\.claude\commands\reflect.md    "$env:USERPROFILE\.claude\commands\"
 ```
 
 ### macOS / Linux
@@ -97,19 +92,15 @@ cp -r ./.claude/skills/autoresearch ~/.claude/skills/
 cp -r ./.claude/skills/blueprint    ~/.claude/skills/
 cp -r ./.claude/skills/deep-dive    ~/.claude/skills/
 cp -r ./.claude/skills/reflect      ~/.claude/skills/
-
-cp ./.claude/commands/blueprint.md ~/.claude/commands/
-cp ./.claude/commands/deep-dive.md ~/.claude/commands/
-cp ./.claude/commands/reflect.md   ~/.claude/commands/
 ```
 
 ## Codex vs Claude Code differences
 
-- Removed the Claude-specific `/commands` wrappers and restructured around `SKILL.md` as the central entry point.
+- This repository ships both distributions as skill folders centered on `SKILL.md`; it does not include separate Claude `/commands` wrapper files.
 - Updated `.claude/...` paths, `Task`-based subagents, and `AskUserQuestion` assumptions to fit the Codex flow.
 - `blueprint` includes a Codex-compatible document template, design principles, and a structure validation script.
 - `autoresearch` shares the same feature set across Claude Code and Codex; on Codex it follows a default sequential execution model with explicit delegation approval.
-- All four skills include `agents/openai.yaml` to ship Codex UI metadata alongside the skill.
+- The Codex distribution includes `agents/openai.yaml` files to ship Codex UI metadata alongside each skill.
 
 ## License
 

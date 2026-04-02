@@ -67,4 +67,4 @@ experiment	score	max_score	pass_rate	skill_lines	status	description
 5	19	20	95%	93	keep	부정형→긍정형 전환 + 좋은 출력 예시
 ```
 
-`skill_lines`는 해당 실험 시점의 SKILL.md 줄 수이다. `wc -l SKILL.md`로 측정.
+`skill_lines`는 해당 실험 시점의 대상 스킬 파일 줄 수이다. `wc -l <target-skill-path>`로 측정.

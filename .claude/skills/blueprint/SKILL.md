@@ -81,7 +81,7 @@ python .claude/skills/blueprint/scripts/validate_blueprint_doc.py ./blueprint-<t
 python ~/.claude/skills/blueprint/scripts/validate_blueprint_doc.py ./blueprint-<task-name>.md
 ```
 
-If validation fails, fix the document and run again. This script checks structure only (required sections, step fields, state tokens) — it does not check content quality.
+If validation fails, fix the document and run again. This script checks structure only (required sections, step fields, and implementation/workflow section presence) — it does not check content quality.
 
 ### Phase 3: Review
 

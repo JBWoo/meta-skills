@@ -26,7 +26,7 @@ git checkout -b autoresearch/report-generator
 ### Baseline (experiment 0): 13/20 (65%) | skill_lines: 85
 
 ```bash
-git add SKILL.md && git commit -m "autoresearch: baseline (13/20)"
+git add .codex/skills/report-generator/SKILL.md .gitignore && git commit -m "autoresearch: baseline (13/20)"
 ```
 
 실패 패턴 분석:
