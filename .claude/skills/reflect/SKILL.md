@@ -193,14 +193,25 @@ Present the duplicate-checked results clearly, then build a dynamic options list
 - Include **"학습 기록 저장"** only if learning-extractor returned at least one learning
 - Always include **"건너뛰기"**
 
-Then ask with `AskUserQuestion`, passing only the relevant options (multiSelect: true).
+Then call `AskUserQuestion` with the relevant options and `multiSelect: true`. Example (all options present):
 
-Example (all options present):
-> "세션 정리가 완료됐습니다. 어떤 작업을 실행할까요? (복수 선택 가능)
-> 1. 문서 업데이트 — CLAUDE.md 또는 README에 변경 사항 반영
-> 2. 자동화 생성 — 반복 패턴을 스킬 또는 스크립트로 만들기
-> 3. 학습 기록 저장 — 오늘 배운 것을 노트 파일에 저장
-> 4. 건너뛰기 — 결과 확인만"
+```json
+AskUserQuestion({
+  "questions": [{
+    "question": "세션 정리가 완료됐습니다. 어떤 작업을 실행할까요?",
+    "header": "작업 선택",
+    "options": [
+      {"label": "문서 업데이트", "description": "CLAUDE.md 또는 README에 변경 사항 반영"},
+      {"label": "자동화 생성", "description": "반복 패턴을 스킬 또는 스크립트로 만들기"},
+      {"label": "학습 기록 저장", "description": "오늘 배운 것을 노트 파일에 저장"},
+      {"label": "건너뛰기", "description": "결과 확인만 — 별도 작업 없음"}
+    ],
+    "multiSelect": true
+  }]
+})
+```
+
+Omit options that aren't applicable (e.g. if doc-updater found nothing, remove "문서 업데이트"). Always keep "건너뛰기".
 
 Execute only the selected actions. Execution instructions for each:
 

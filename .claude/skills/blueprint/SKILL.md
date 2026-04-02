@@ -67,6 +67,22 @@ Save as `blueprint-<task-name>.md` in the current working directory.
 - [ ] Folder structure is defined
 - [ ] No table cell left blank or "TBD"
 
+### Phase 2.5: Validate Document
+
+After saving, run the structural validation script before presenting the document to the user.
+
+Do not assume a relative path from the target project — run the script from the **currently installed blueprint skill path**.
+
+```bash
+# When working in this repo:
+python .claude/skills/blueprint/scripts/validate_blueprint_doc.py ./blueprint-<task-name>.md
+
+# When installed globally:
+python ~/.claude/skills/blueprint/scripts/validate_blueprint_doc.py ./blueprint-<task-name>.md
+```
+
+If validation fails, fix the document and run again. This script checks structure only (required sections, step fields, state tokens) — it does not check content quality.
+
 ### Phase 3: Review
 
 After presenting the document, summarize the key design decisions made during the interview:

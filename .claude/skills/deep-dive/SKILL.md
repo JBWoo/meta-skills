@@ -118,6 +118,13 @@ DO NOT re-evaluate. Follow the decision made in Step 1:
 ## Goals
 - ...
 
+## Scope
+- In:
+- Out:
+
+## Inputs and Outputs
+- ...
+
 ## Requirements
 ### Functional
 - ...
@@ -131,6 +138,9 @@ DO NOT re-evaluate. Follow the decision made in Step 1:
 - ...
 
 ## Tradeoffs & Decisions
+- ...
+
+## Failure Modes
 - ...
 
 ## Open Questions

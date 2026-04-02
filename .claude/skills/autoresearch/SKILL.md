@@ -139,13 +139,27 @@ Before running any experiments, create `autoresearch-[skill-name]/dashboard.html
 
 ---
 
-## how to run the target skill
+## step 4: define the run harness
 
-Each experiment requires running the target skill with test inputs. See `references/execution-guide.md` for methods (subagent vs direct execution) and key rules.
+Before running any experiments, define the exact repeatable procedure that constitutes "running the target skill." Save it as `autoresearch-[skill-name]/run-harness.md` when you create the folder in step 5.
+
+**A trustworthy harness specifies:**
+1. **Input** — which test prompt, in what format, passed how
+2. **Execution** — which command or agent invocation runs the skill
+3. **Output capture** — where artifacts land and how they're saved to `runs/exp-N/<prompt-id>/`
+
+**Acceptable harnesses:**
+- A local script or command that runs the workflow end to end
+- A bounded agent invocation with a fixed prompt and deterministic artifact capture
+- A manual protocol — as long as the procedure is written down and followed identically each run
+
+If you cannot define a trustworthy harness, do not proceed with autoresearch. Switch to "skill rewrite + manual review" mode instead.
+
+See `references/execution-guide.md` for execution patterns (subagent vs direct) and key rules.
 
 ---
 
-## step 4: establish baseline (or resume)
+## step 5: establish baseline (or resume)
 
 **First, check if `autoresearch-[skill-name]/` already exists.**
 
@@ -157,7 +171,7 @@ Do NOT create a new folder or re-establish baseline. Continue from the previous 
 2. Load `results.json` to find the current best score and next experiment number
 3. Read `SKILL.md.baseline` to understand the original starting point
 4. If autoresearch branch exists, `git checkout autoresearch/[skill-name]`
-5. Resume the experiment loop from where it left off — skip directly to step 5 or step 6 as appropriate
+5. Resume the experiment loop from where it left off — skip directly to step 6 or step 7 as appropriate
 6. New experiment numbers continue from the last one (e.g., if last was exp-7, next is exp-8)
 
 If a new model is being used, also read the research log to continue from the last direction.
@@ -167,7 +181,7 @@ If a new model is being used, also read the research log to continue from the la
 Run the skill AS-IS before changing anything. This is experiment #0.
 
 1. Create `autoresearch-[skill-name]/` with `runs/baseline/`
-2. Create `results.json`, `changelog.md`, `research-log.json`, `dashboard.html` → open dashboard
+2. Create `results.json`, `changelog.md`, `research-log.json`, `dashboard.html`, `run-harness.md` → open dashboard
 3. Back up original SKILL.md as `SKILL.md.baseline`
 4. Run the skill with test inputs, copy all outputs into `runs/baseline/<prompt-id>/`
 5. Score every output against every eval, record baseline score
@@ -181,7 +195,7 @@ For prompt rotation and heavy pipelines, see `references/pipeline-guide.md`.
 
 ---
 
-## step 5: human review phase (optional)
+## step 6: human review phase (optional)
 
 > Skip this step entirely if the user set human review mode to `skip`.
 
@@ -189,21 +203,21 @@ The first 3 experiments run with human review. This is where subjective judgment
 
 **For each human-reviewed experiment:**
 
-1. **Analyze failures** and form a hypothesis (same as step 6)
+1. **Analyze failures** and form a hypothesis (same as step 7)
 2. **Make ONE change** to SKILL.md
 3. **Commit the change:** `git add SKILL.md && git commit -m "autoresearch: [one-line description]"`
 4. **Run the experiment** and score it
 5. **Present results** showing: the change and why, before/after score, 2-3 sample outputs, keep/discard recommendation
 6. **Ask the user:** "Does this direction feel right?" / "Anything the evals aren't catching?"
 7. **If subjective feedback is given**, note it in changelog.md as `[HUMAN INSIGHT]` and incorporate into SKILL.md. Do NOT add it as a new eval.
-8. **Keep or discard** (same rules as step 6). DISCARD → before resetting, run `git stash` if `git status --porcelain` shows any uncommitted changes outside `SKILL.md` and `references/`. Then: `git reset --hard HEAD~1`. Then `git stash pop` if you stashed.
+8. **Keep or discard** (same rules as step 7). DISCARD → check for unrelated uncommitted changes first (`git status --porcelain`). If any exist outside `SKILL.md` and `references/`, stash them: `git stash`. Then `git reset --soft HEAD~1`. Restore only the mutated files: `git restore SKILL.md` (and any reference files changed in this experiment). Then `git stash pop` if you stashed.
 9. **Log the result** with status `human-reviewed`.
 
 **After 3 human-reviewed experiments (or "go auto"):** Switch to auto mode. Tell the user: "Switching to auto mode. Check the dashboard anytime."
 
 ---
 
-## step 6: run the autonomous experiment loop
+## step 7: run the autonomous experiment loop
 
 This is the core autoresearch loop. Once started, run autonomously until stopped.
 
@@ -238,13 +252,13 @@ This is the core autoresearch loop. Once started, run autonomously until stopped
    When two versions have the same score, always prefer the shorter one.
 
    - **KEEP** → keep this commit. It is the new baseline.
-   - **DISCARD** → check for unrelated uncommitted changes first (`git status --porcelain`). If any exist outside `SKILL.md` and `references/`, stash them: `git stash`. Then `git reset --hard HEAD~1`. Then `git stash pop` if you stashed.
+   - **DISCARD** → check for unrelated uncommitted changes first (`git status --porcelain`). If any exist outside `SKILL.md` and `references/`, stash them: `git stash`. Then `git reset --soft HEAD~1`. Restore only the mutated files: `git restore SKILL.md` (and any reference files changed in this experiment). Then `git stash pop` if you stashed.
 
    **Individual eval regression detection:** Even if the total score goes up, strongly consider DISCARD if an eval that previously passed now fails. A gain in one area that hides a regression in another degrades the skill's long-term quality.
 
 8. **Log the result** and update results.json / dashboard.
 
-9. **If this was a direction-level change**, log it in research-log.json (see step 7).
+9. **If this was a direction-level change**, log it in research-log.json (see step 8).
 
 10. **Repeat.** Go back to step 1.
 
@@ -275,7 +289,7 @@ After 3 consecutive discards or when ideas run dry:
 
 ---
 
-## step 7: maintain the logs
+## step 8: maintain the logs
 
 Three files, three different jobs. Keep them separate. See `references/logging-guide.md` for templates and schemas.
 
@@ -285,7 +299,7 @@ Three files, three different jobs. Keep them separate. See `references/logging-g
 
 ---
 
-## step 8: deliver results
+## step 9: deliver results
 
 When the user returns or the loop stops, present:
 
@@ -344,6 +358,7 @@ autoresearch-[skill-name]/
 ├── changelog.md            # detailed log of every mutation
 ├── research-log.json       # direction shifts and strategic patterns only
 ├── SKILL.md.baseline       # original skill before optimization
+├── run-harness.md          # repeatable procedure for executing the skill
 └── runs/                   # one folder per experiment
     ├── baseline/
     ├── exp-1/
@@ -366,7 +381,8 @@ For a concrete walkthrough of 5 experiments (git ratcheting, skill_lines, simpli
 A good autoresearch run:
 
 1. **Started with a baseline** — never changed anything before measuring
-2. **Used appropriate eval types** — binary for rules, comparative for quality, fidelity for pipelines; at least 50% Tier 1-2 evals
+2. **Defined a run harness** — a repeatable execution procedure was written down before any experiment ran
+3. **Used appropriate eval types** — binary for rules, comparative for quality, fidelity for pipelines; at least 50% Tier 1-2 evals
 3. **Got human input early** — direction validated before going autonomous
 4. **Mutated at the right level** — L1 for rules, L2 for assets, L3 for eval calibration
 5. **Kept a complete log** — every experiment recorded with skill_lines
