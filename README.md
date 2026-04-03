@@ -9,10 +9,10 @@ A collection of meta skills for designing agent systems, clarifying requirements
 
 | Skill | Role | Claude Code | Codex |
 |---|---|---|---|
-| `blueprint` | Design document for automation/agent systems | `blueprint` skill | `blueprint` 또는 `$blueprint` |
+| `blueprint` | Design document for automation/agent systems — includes a structural validation script | `blueprint` skill | `blueprint` 또는 `$blueprint` |
 | `deep-dive` | Multi-round interview to produce a detailed spec document | `deep-dive` skill | `deep-dive` 또는 `$deep-dive` |
 | `reflect` | Summarize a work session, identify doc update points, surface next actions | `reflect` skill | `reflect` 또는 `$reflect` |
-| `autoresearch` | Automated skill optimization (iterative runs + evaluation + prompt mutation) | `autoresearch` skill | `autoresearch` 또는 `$autoresearch` |
+| `autoresearch` | Automated skill optimization (iterative runs + evaluation + prompt mutation) — outputs improved skill, `results.json`, `changelog.md`, and a live HTML dashboard | `autoresearch` skill | `autoresearch` 또는 `$autoresearch` |
 
 ## Skill Workflow
 
@@ -41,13 +41,46 @@ blueprint → deep-dive → [implement] → autoresearch → reflect
 ```text
 .claude/
   skills/
+    autoresearch/
+      SKILL.md
+      references/
+        dashboard-guide.md     # Live HTML dashboard during runs
+        eval-guide.md          # Writing binary + comparative evals
+        execution-guide.md     # Run loop mechanics
+        logging-guide.md       # results.json / results.tsv schema
+        mutation-guide.md      # Prompt mutation strategies
+        pipeline-guide.md      # Full pipeline overview
+        worked-example.md      # Annotated end-to-end example
+    blueprint/
+      SKILL.md
+      references/
+        document-template.md   # Output document section-by-section template
+        design-principles.md   # Agent structure and design rules
+        example-blueprint.md   # Fully annotated sample blueprint
+      scripts/
+        validate_blueprint_doc.py  # Structural validation for blueprint docs
+    deep-dive/
+      SKILL.md
+    reflect/
+      SKILL.md
 
 .codex/
   skills/
     autoresearch/
+      SKILL.md
+      agents/openai.yaml       # Codex UI metadata
+      references/              # (same as Claude Code)
     blueprint/
+      SKILL.md
+      agents/openai.yaml
+      references/
+      scripts/
     deep-dive/
+      SKILL.md
+      agents/openai.yaml
     reflect/
+      SKILL.md
+      agents/openai.yaml
 ```
 
 ## Installing (Codex)
