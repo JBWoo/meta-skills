@@ -1,42 +1,42 @@
-# Jangpm Meta Skills for Claude Code and Codex
+# Jangpm Meta Skills (Claude Code & Codex용)
 
-A collection of meta skills for designing agent systems, clarifying requirements, wrapping up sessions, and automatically optimizing skills.
+Claude Code와 Codex에서 에이전트 시스템 설계, 요구사항 구체화, 세션 마무리, 스킬 자동 최적화를 위한 메타 스킬 모음.
 
-- Claude Code distribution: `.claude/`
-- Codex distribution: `.codex/skills/`
+- Claude Code 배포: `.claude/`
+- Codex 배포: `.agents/skills/` 또는 사용자 전역 `~/.agents/skills/`
 
-## Skills
+## 스킬 목록
 
-| Skill | Role | Claude Code | Codex |
+| 스킬 | 역할 | Claude Code | Codex |
 |---|---|---|---|
-| `blueprint` | Design document for automation/agent systems — includes a structural validation script | `blueprint` skill | `blueprint` 또는 `$blueprint` |
-| `deep-dive` | Multi-round interview to produce a detailed spec document | `deep-dive` skill | `deep-dive` 또는 `$deep-dive` |
-| `reflect` | Summarize a work session, identify doc update points, surface next actions | `reflect` skill | `reflect` 또는 `$reflect` |
-| `autoresearch` | Automated skill optimization (iterative runs + evaluation + prompt mutation) — outputs improved skill, `results.json`, `changelog.md`, and a live HTML dashboard | `autoresearch` skill | `autoresearch` 또는 `$autoresearch` |
+| `blueprint` | 자동화/에이전트 시스템 설계 문서 작성 — 구조 검증 스크립트 포함 | `blueprint` 스킬 | `blueprint` 또는 `$blueprint` |
+| `deep-dive` | 다단계 인터뷰를 통해 상세 스펙 문서 생성 | `deep-dive` 스킬 | `deep-dive` 또는 `$deep-dive` |
+| `reflect` | 작업 세션 요약, 문서 업데이트 포인트 식별, 다음 액션 정리 | `reflect` 스킬 | `reflect` 또는 `$reflect` |
+| `autoresearch` | 스킬 자동 최적화 (반복 실행 + 평가 + 프롬프트 변형) — 개선된 스킬, `results.json`, `changelog.md`, 실시간 HTML 대시보드 생성 | `autoresearch` 스킬 | `autoresearch` 또는 `$autoresearch` |
 
-## Skill Workflow
+## 스킬 워크플로우
 
-These four skills work best in sequence:
+네 가지 스킬은 다음 순서로 함께 사용할 때 가장 효과적입니다:
 
 ```
-blueprint → deep-dive → [implement] → autoresearch → reflect
+blueprint → deep-dive → [구현] → autoresearch → reflect
 ```
 
-| Step | Skill | When to use |
+| 단계 | 스킬 | 사용 시점 |
 |------|-------|-------------|
-| 1. Design | `blueprint` | Start here for any new agent/automation — produces a complete design document before writing code |
-| 2. Spec | `deep-dive` | When requirements need more clarity — structured interview produces a spec document |
-| 3. Implement | *(your code)* | Build the system following the blueprint and spec |
-| 4. Optimize | `autoresearch` | After the skill works — iteratively improve it using automated eval loops |
-| 5. Wrap up | `reflect` | At the end of any work session — summarize, log learnings, surface follow-up actions |
+| 1. 설계 | `blueprint` | 새로운 에이전트/자동화 시작 시 — 코드 작성 전 완전한 설계 문서 생성 |
+| 2. 스펙 | `deep-dive` | 요구사항 구체화가 필요할 때 — 구조화된 인터뷰로 스펙 문서 생성 |
+| 3. 구현 | *(직접 코딩)* | 블루프린트와 스펙을 바탕으로 시스템 구축 |
+| 4. 최적화 | `autoresearch` | 스킬 동작 확인 후 — 자동 평가 루프로 반복 개선 |
+| 5. 마무리 | `reflect` | 작업 세션 종료 시 — 요약, 학습 기록, 후속 액션 정리 |
 
-**Shorter patterns:**
-- New project: `blueprint` → `deep-dive` → implement → `autoresearch` → `reflect`
-- Mid-project feature: `deep-dive` → implement → `reflect`
-- Skill optimization: `autoresearch` standalone
-- Session end: `reflect` standalone
+**상황별 간단 패턴:**
+- 새 프로젝트: `blueprint` → `deep-dive` → 구현 → `autoresearch` → `reflect`
+- 중간 기능 추가: `deep-dive` → 구현 → `reflect`
+- 스킬 최적화만: `autoresearch` 단독 실행
+- 세션 마무리만: `reflect` 단독 실행
 
-## Repository Structure
+## 디렉토리 구조
 
 ```text
 .claude/
@@ -44,32 +44,32 @@ blueprint → deep-dive → [implement] → autoresearch → reflect
     autoresearch/
       SKILL.md
       references/
-        dashboard-guide.md     # Live HTML dashboard during runs
-        eval-guide.md          # Writing binary + comparative evals
-        execution-guide.md     # Run loop mechanics
-        logging-guide.md       # results.json / results.tsv schema
-        mutation-guide.md      # Prompt mutation strategies
-        pipeline-guide.md      # Full pipeline overview
-        worked-example.md      # Annotated end-to-end example
+        dashboard-guide.md     # 실행 중 실시간 HTML 대시보드
+        eval-guide.md          # 이진/비교 평가 작성 방법
+        execution-guide.md     # 실행 루프 동작 방식
+        logging-guide.md       # results.json / results.tsv 스키마
+        mutation-guide.md      # 프롬프트 변형 전략
+        pipeline-guide.md      # 전체 파이프라인 개요
+        worked-example.md      # 주석 포함 엔드투엔드 예시
     blueprint/
       SKILL.md
       references/
-        document-template.md   # Output document section-by-section template
-        design-principles.md   # Agent structure and design rules
-        example-blueprint.md   # Fully annotated sample blueprint
+        document-template.md   # 출력 문서 섹션별 템플릿
+        design-principles.md   # 에이전트 구조 및 설계 원칙
+        example-blueprint.md   # 주석 포함 샘플 블루프린트
       scripts/
-        validate_blueprint_doc.py  # Structural validation for blueprint docs
+        validate_blueprint_doc.py  # 블루프린트 문서 구조 검증 스크립트
     deep-dive/
       SKILL.md
     reflect/
       SKILL.md
 
-.codex/
+.agents/
   skills/
     autoresearch/
       SKILL.md
-      agents/openai.yaml       # Codex UI metadata
-      references/              # (same as Claude Code)
+      agents/openai.yaml       # Codex UI 메타데이터
+      references/              # (Claude Code와 동일)
     blueprint/
       SKILL.md
       agents/openai.yaml
@@ -81,33 +81,39 @@ blueprint → deep-dive → [implement] → autoresearch → reflect
     reflect/
       SKILL.md
       agents/openai.yaml
+
+.codex/
+  agents/
+    reviewer.toml             # optional: create only when you need a custom subagent
+    explorer.toml             # optional: create only when you need a custom subagent
 ```
 
-## Installing (Codex)
+## 설치 (Codex)
 
-Codex users can copy the four skill folders to `~/.codex/skills/`.
+네 개의 스킬 폴더를 `~/.agents/skills/`에 복사합니다.
 
 ### Windows PowerShell
 
 ```powershell
-Copy-Item -Recurse .\.codex\skills\autoresearch "$env:USERPROFILE\.codex\skills\"
-Copy-Item -Recurse .\.codex\skills\blueprint   "$env:USERPROFILE\.codex\skills\"
-Copy-Item -Recurse .\.codex\skills\deep-dive   "$env:USERPROFILE\.codex\skills\"
-Copy-Item -Recurse .\.codex\skills\reflect     "$env:USERPROFILE\.codex\skills\"
+Copy-Item -Recurse .\.agents\skills\autoresearch "$env:USERPROFILE\.agents\skills\"
+Copy-Item -Recurse .\.agents\skills\blueprint   "$env:USERPROFILE\.agents\skills\"
+Copy-Item -Recurse .\.agents\skills\deep-dive   "$env:USERPROFILE\.agents\skills\"
+Copy-Item -Recurse .\.agents\skills\reflect     "$env:USERPROFILE\.agents\skills\"
 ```
 
 ### macOS / Linux
 
 ```bash
-cp -r ./.codex/skills/autoresearch ~/.codex/skills/
-cp -r ./.codex/skills/blueprint    ~/.codex/skills/
-cp -r ./.codex/skills/deep-dive    ~/.codex/skills/
-cp -r ./.codex/skills/reflect      ~/.codex/skills/
+mkdir -p ~/.agents/skills
+cp -r ./.agents/skills/autoresearch ~/.agents/skills/
+cp -r ./.agents/skills/blueprint    ~/.agents/skills/
+cp -r ./.agents/skills/deep-dive    ~/.agents/skills/
+cp -r ./.agents/skills/reflect      ~/.agents/skills/
 ```
 
-## Installing (Claude Code)
+## 설치 (Claude Code)
 
-The existing Claude Code distribution method is also preserved.
+Claude Code 배포 방식도 동일하게 지원됩니다.
 
 ### Windows PowerShell
 
@@ -127,14 +133,17 @@ cp -r ./.claude/skills/deep-dive    ~/.claude/skills/
 cp -r ./.claude/skills/reflect      ~/.claude/skills/
 ```
 
-## Codex vs Claude Code differences
+## Codex vs Claude Code 차이점
 
-- This repository ships both distributions as skill folders centered on `SKILL.md`; it does not include separate Claude `/commands` wrapper files.
-- Updated `.claude/...` paths, `Task`-based subagents, and `AskUserQuestion` assumptions to fit the Codex flow.
-- `blueprint` includes a Codex-compatible document template, design principles, and a structure validation script.
-- `autoresearch` shares the same feature set across Claude Code and Codex; on Codex it follows a default sequential execution model with explicit delegation approval.
-- The Codex distribution includes `agents/openai.yaml` files to ship Codex UI metadata alongside each skill.
+- 이 저장소는 `SKILL.md` 중심의 스킬 폴더로 두 플랫폼 배포를 모두 제공합니다. Claude 슬래시 커맨드(`/commands`) 래퍼 파일은 포함하지 않습니다.
+- `.claude/...` 경로, `Task` 기반 서브에이전트, `AskUserQuestion` 처리를 Codex 흐름에 맞게 조정했습니다.
+- `blueprint`는 Codex 호환 문서 템플릿, 설계 원칙, 구조 검증 스크립트를 포함합니다.
+- `autoresearch`는 Claude Code와 Codex 양쪽에서 동일한 기능을 제공합니다. Codex에서는 명시적 위임 승인이 있는 기본 순차 실행 모델을 따릅니다.
+- Codex 배포에는 각 스킬 폴더에 선택적 UI 메타데이터를 담은 `agents/openai.yaml` 파일이 포함됩니다.
+- 공개 배포용 기본 정책으로 `blueprint`, `deep-dive`는 암묵 호출을 허용하고, `reflect`, `autoresearch`는 명시 호출(`$reflect`, `$autoresearch`)만 허용합니다.
+- Codex의 커스텀 서브에이전트는 스킬 폴더가 아니라 `.codex/agents/*.toml`에 정의해야 합니다.
+- 이 저장소는 커스텀 서브에이전트를 아직 포함하지 않으므로 `.codex/` 디렉터리는 기본적으로 체크인하지 않습니다. 필요할 때만 `.codex/agents/`를 추가하면 됩니다.
 
-## License
+## 라이선스
 
 MIT

@@ -1,6 +1,6 @@
 ---
 name: deep-dive
-description: A Codex skill for in-depth requirements interviews and spec document writing. Conducts multi-round questioning to clarify core behavior, technical constraints, UX, tradeoffs, and failure modes, then writes a new spec or updates an existing document. Use when the user asks for "/deep-dive", "deep dive", "interview me", "create a spec", "요구사항 정리", "기획서 만들어", or "스펙 작성", or when they have a rough idea and need a structured requirements deep dive in Codex.
+description: A Codex skill for in-depth requirements interviews and spec document writing. Conducts multi-round questioning to clarify core behavior, technical constraints, UX, tradeoffs, and failure modes, then writes a new spec or updates an existing document. Use when the user asks for "$deep-dive", "deep dive", "interview me", "create a spec", "요구사항 정리", "기획서 만들어", or "스펙 작성", or when they have a rough idea and need a structured requirements deep dive in Codex.
 metadata:
   short-description: Run a deep requirements interview and spec write-up
 ---
@@ -18,9 +18,9 @@ Clarify ambiguous work through a focused, multi-round interview, then update an 
 
 ## Workflow
 
-### 1. Read `$ARGUMENTS`
+### 1. Read the Invocation Context
 
-`$ARGUMENTS` is the text after the skill trigger. Example: `/deep-dive payment system` -> `$ARGUMENTS = "payment system"`.
+Treat the user text that accompanies the skill invocation as the initial topic/context. Example: `/deep-dive payment system` suggests the topic `payment system`.
 
 - If no argument is given, ask the topic as the first question
 - Extract the likely topic, intent, and expected deliverable

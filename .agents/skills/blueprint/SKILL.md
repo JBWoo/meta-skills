@@ -1,6 +1,6 @@
 ---
 name: blueprint
-description: Codex용 자동화 에이전트 시스템 설계서 생성 스킬. 사용자 인터뷰로 요구사항을 정리하고 Codex 구현 기준의 통합 설계 문서(.md)를 작성한다. Use when the user asks for "/blueprint", "blueprint", "에이전트 설계", "설계서 만들어", "agentic workflow design", or any request to plan a Codex automation or agent workflow.
+description: Codex용 자동화 에이전트 시스템 설계서 생성 스킬. 사용자 인터뷰로 요구사항을 정리하고 Codex 구현 기준의 통합 설계 문서(.md)를 작성한다. Use when the user asks for "$blueprint", "blueprint", "에이전트 설계", "설계서 만들어", "agentic workflow design", or any request to plan a Codex automation or agent workflow.
 metadata:
   short-description: Create a Codex automation blueprint
 ---
@@ -13,6 +13,9 @@ Conduct a short interview about the task the user wants to automate, then produc
 
 - Default assumption: `single Codex agent + skills/scripts as needed`.
 - Do not include Claude Code-specific elements such as `.claude/commands`, `.claude/agents`, `AGENT.md`, or `Task`-based sub-agent structures.
+- Distinguish clearly between Codex skills and Codex custom agents:
+  - Skills live under `.agents/skills/<skill-name>/`
+  - Custom subagents live under `.codex/agents/<agent-name>.toml`
 - Implementation spec covers structure and responsibilities only — do not write actual code bodies or lengthy prompts.
 
 ## Workflow
@@ -57,7 +60,7 @@ If you want a calibration sample for specificity and decision framing, also skim
 | Step-by-step processing, branch conditions | `#### Step NN` blocks + `### State Model` |
 | Agent judgment vs script processing | `### LLM vs Code Boundary` |
 | Tools / APIs used | `### Skill and Script Inventory` |
-| Single vs multi-agent | `### Recommended Folder Structure` + `### AGENTS.md Responsibilities` |
+| Single vs multi-agent | `### Recommended Folder Structure` + `### AGENTS.md Responsibilities` + `### Custom Agent Definitions` |
 | Failure conditions, retry expectations | `#### Step NN` → `7) Failure Handling:` |
 
 Writing rules:
@@ -85,14 +88,14 @@ Do not assume a relative path from the target project — run the validation scr
 Example (adapt the path to your installation):
 
 ```bash
-python ~/.codex/skills/blueprint/scripts/validate_blueprint_doc.py ./blueprint-<task-name>.md
+python ~/.agents/skills/blueprint/scripts/validate_blueprint_doc.py ./blueprint-<task-name>.md
 # or if installed elsewhere:
-# python /path/to/codex/skills/blueprint/scripts/validate_blueprint_doc.py ./blueprint-<task-name>.md
+# python /path/to/skills/blueprint/scripts/validate_blueprint_doc.py ./blueprint-<task-name>.md
 ```
 
 - If validation fails, fix the document and run again.
 - This validation checks document structure only.
-- Use `./.codex/skills/blueprint/scripts/validate_blueprint_doc.py` only when working directly on the skill repository itself (local clone).
+- Use `./.agents/skills/blueprint/scripts/validate_blueprint_doc.py` only when working directly on this repository copy of the skill.
 - When adding or modifying a Codex skill itself, use the separately installed `skill-creator` skill's `quick_validate.py`.
 
 ### 4. Review
@@ -103,4 +106,5 @@ Show the user the document path and a brief summary of key decisions, then confi
 
 - Document structure follows English headers from the template — the validation script operates based on those headers.
 - All design documents must have a **skill-creator usage requirement** section — every skill defined in the document must be created via `skill-creator` at implementation time, regardless of whether skill creation is a primary focus. See `references/design-principles.md` › "Skill Creation Standards" for exact wording. The validator checks for the literal string `skill-creator`.
-- When designing a new skill folder, write paths relative to `.codex/skills/<skill-name>/` and do not create unnecessary files.
+- When designing a new skill folder, write paths relative to `.agents/skills/<skill-name>/`.
+- When designing a custom subagent, write paths relative to `.codex/agents/<agent-name>.toml` and include `name`, `description`, and `developer_instructions`.

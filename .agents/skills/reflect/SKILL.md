@@ -1,6 +1,6 @@
 ---
 name: reflect
-description: A skill for wrapping up a Codex work session. Summarizes changes made this session, identifies doc update points, automation ideas, learnings, and next actions all at once. Use when the user asks for "/reflect", "reflect", "session reflect", "end session", "세션 정리", "오늘 한 거 정리", or "마무리", or wants a Codex session wrap-up after substantial work.
+description: A skill for wrapping up a Codex work session. Summarizes changes made this session, identifies doc update points, automation ideas, learnings, and next actions all at once. Use when the user asks for "$reflect", "reflect", "session reflect", "end session", "세션 정리", "오늘 한 거 정리", or "마무리", or wants a Codex session wrap-up after substantial work.
 metadata:
   short-description: Summarize a Codex session and next actions
 ---
@@ -79,8 +79,12 @@ Rules for edits:
 #### 4a. Docs to update
 
 - Update the smallest relevant existing document
-- Append or revise only the sections justified by the session
-- Do not rewrite unrelated sections
+- Before editing, classify each change as `APPEND`, `REVISE`, or `NEW_SECTION`
+- `APPEND`: add genuinely new information to the matching section
+- `REVISE`: replace outdated or inaccurate statements directly so the document reflects the current truth
+- `NEW_SECTION`: add a new section only when no existing section is a good fit
+- Leave unrelated sections untouched
+- Do not rewrite the whole file unless it is clearly a throwaway draft
 
 #### 4b. Automation ideas
 
@@ -96,7 +100,11 @@ Rules:
 
 For each accepted scaffold:
 
-- Skill -> create `.codex/skills/<name>/SKILL.md`
+- Skill -> create `.agents/skills/<name>/SKILL.md`
+- Custom subagent -> create `.codex/agents/<name>.toml` with at least:
+  - `name = "<agent-name>"`
+  - `description = "<when Codex should use this agent>"`
+  - `developer_instructions = """<core behavior rules>"""`
 - Script -> create `scripts/<name>.py`
 - If `skill-creator` is available and the user wants a real skill scaffold, use it; otherwise create the minimal required structure
 

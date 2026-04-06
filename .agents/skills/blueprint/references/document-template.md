@@ -140,15 +140,18 @@ Use the exact section headers below so `scripts/validate_blueprint_doc.py` can v
 ```text
 /project-root
   AGENTS.md
-  /.codex
+  /.agents
     /skills
       /<skill-name>
         SKILL.md
         /agents
-          openai.yaml
+          openai.yaml          # optional UI metadata
         /scripts        # optional
         /references     # optional
         /assets         # optional
+  /.codex
+    /agents
+      /<agent-name>.toml    # optional custom subagent
   /output
   /scripts              # optional project scripts
   /docs                 # optional supporting docs
@@ -158,6 +161,11 @@ Use the exact section headers below so `scripts/validate_blueprint_doc.py` can v
 - [How the main Codex instructions route work]
 - [What the project-level constraints are]
 - [How skills are invoked or referenced]
+
+### Custom Agent Definitions
+| Name | Path | Role | Required Fields |
+|---|---|---|---|
+| [agent-name or none] | `.codex/agents/[agent-name].toml` or none | [when custom subagents are justified] | `name`, `description`, `developer_instructions` |
 
 ### Skill and Script Inventory
 | Name | Type | Role | Trigger Condition |
@@ -172,9 +180,10 @@ Use the exact section headers below so `scripts/validate_blueprint_doc.py` can v
 skill-creator가 보장하는 규격:
 1. SKILL.md frontmatter (`name`, `description`) 필수 필드 준수
 2. `description`의 트리거 정확도 최적화 (eval 기반 optimization loop)
-3. 폴더 구조 (`SKILL.md` + `scripts/` + `references/`) 규격 준수
-4. Progressive disclosure: SKILL.md 본문 500줄 이내, 대용량 참조는 `references/`로 분리
-5. 테스트 프롬프트 실행 및 품질 검증 완료
+3. 스킬 저장 위치 `.agents/skills/<skill-name>/` 규격 준수
+4. 폴더 구조 (`SKILL.md` + `scripts/` + `references/`) 규격 준수
+5. Progressive disclosure: SKILL.md 본문 500줄 이내, 대용량 참조는 `references/`로 분리
+6. 테스트 프롬프트 실행 및 품질 검증 완료
 
 ### Core Artifacts
 | Path | Format | Producer | Purpose |
@@ -187,6 +196,7 @@ skill-creator가 보장하는 규격:
 - [ ] Intermediate artifacts use the `output/stepNN_<name>.<ext>` rule
 - [ ] LLM vs code responsibilities are separated clearly
 - [ ] Human review points are explicit where needed
-- [ ] Codex-specific paths use `.codex/skills/...`
+- [ ] Codex skill paths use `.agents/skills/...`
+- [ ] Codex custom subagents use `.codex/agents/*.toml`
 - [ ] Skill additions or updates mention `skill-creator`
 ```
