@@ -4,10 +4,10 @@ Each experiment requires running the target skill with test inputs and collectin
 
 ## Method 1: Subagent (recommended)
 
-Use the `Agent` tool to spawn a subagent that executes the skill in the target project's working directory. The subagent inherits the project's CLAUDE.md and skill definitions, so it behaves exactly as a user would experience. Set `cwd` to the target project path in the agent prompt.
+Use the `Agent` tool to spawn a subagent that executes the skill in the target project's working directory. The subagent inherits the project's CLAUDE.md and skill definitions, so it behaves exactly as a user would experience. Include the target project path as a `cd` instruction inside the prompt — the Agent tool has no `cwd` parameter.
 
 ```
-Agent(prompt="cd to /path/to/project and run: <test prompt>", subagent_type="general-purpose")
+Agent(prompt="Your working directory is /path/to/project. Run: <test prompt>", subagent_type="general-purpose")
 ```
 
 ## Method 2: Direct execution

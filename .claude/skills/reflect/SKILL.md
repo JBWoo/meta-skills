@@ -58,12 +58,14 @@ prompt: |
   PROJECT STATE:
   {PROJECT_STATE}
 
-  Your job: Review existing documentation files (CLAUDE.md, README.md, any .md files
+  Your job: Review existing documentation files (README.md, any .md files
   in the project) and identify what needs updating based on the session's work.
 
   Steps:
   1. Use Glob to find all .md files in the project
-  2. Read the most relevant ones (CLAUDE.md first, then README.md)
+  2. Read the most relevant ones (README.md first, then other docs)
+     - If CLAUDE.md is present, read it for context only — do NOT suggest updates to it.
+       CLAUDE.md is an agent instruction file, not a documentation target.
   3. Compare their content against the PROJECT STATE
 
   Return ONLY a structured list:
@@ -217,8 +219,11 @@ Execute only the selected actions. Execution instructions for each:
 
 ### 문서 업데이트
 Use the `Edit` tool to apply the doc-updater's suggestions to the target files.
-- Append new content to the appropriate section
-- Do NOT rewrite existing content — add only what changed
+- Before editing, classify each suggested change as `APPEND`, `REVISE`, or `NEW_SECTION`
+- `APPEND`: add new information to the matching section
+- `REVISE`: replace outdated or inaccurate text directly so the document reflects the current state cleanly
+- `NEW_SECTION`: add a new section only when no existing section is a good fit
+- Do NOT rewrite unrelated sections
 - Tell the user what was updated and in which file
 
 ### 자동화 생성
@@ -234,6 +239,11 @@ Append learnings to `~/.claude/learnings.md` (create if it doesn't exist). Forma
 ## YYYY-MM-DD — [project name]
 - [concept/tool/pattern]: [brief explanation]
 - [concept/tool/pattern]: [brief explanation]
+```
+
+**Size check:** After appending, count the total number of `##` date sections. If there are more than 50 sections, add a note at the top:
+```
+> ⚠️ This file has grown large. Consider archiving entries older than 90 days to `~/.claude/learnings-archive.md`.
 ```
 
 Tell the user the file path and what was added.

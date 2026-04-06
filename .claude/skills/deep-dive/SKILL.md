@@ -26,12 +26,14 @@ An in-depth interview skill that asks non-obvious, probing questions across all 
    - `spec-*.md`, `*-spec.md`, `blueprint-*.md`
    - `*기획*.md`, `*설계*.md`, `*planning*.md`, `*PRD*.md`, `*requirements*.md`
    - `architecture.md`, `roadmap.md`, `overview.md`, `notes.md`
-   - Always check `CLAUDE.md` and `README.md` directly — these often contain relevant spec-level content regardless of naming
+   - Always check `README.md` directly — it often contains relevant spec-level content regardless of naming
    - Any `.md` file that looks like a design/planning document based on its name
-3. If a matching file is found, read it with `Read` to understand its current content and structure.
+   - ⚠️ **CLAUDE.md is context-only**: Always read it to understand project conventions and constraints, but **never include it as an update candidate** — it is an agent instruction file, not a spec document
+3. If a matching file is found, read it with `Read` to understand its current content and structure. For `CLAUDE.md`, read it silently for context only — do not present it to the user as a candidate to update.
 4. **If no documents found** → skip to Step 2 (interview). The decision is implicitly **create new** — Step 4b will apply after the interview.
 5. **User confirmation (REQUIRED when documents are found)**:
    - Present the candidate document(s) to the user via `AskUserQuestion`
+   - **Exclude `CLAUDE.md` from the candidate list** — it is never an update target, only read for context
    - If **one document** found: "I found an existing document: `[filename]`. I'll update this with the interview results. OK? (Type 'new' if you want a separate file instead.)"
    - If **multiple documents** found: "I found these existing documents: [list]. Which one should I update? Or type 'new' to create a fresh spec file."
    - If the user picks a document (or confirms the single one) → that is the **update target** (proceed to interview, then Step 4a)
@@ -49,7 +51,7 @@ Use `AskUserQuestion` to interview the user continuously. Follow these rules:
 - **Build on previous answers first** — if the last answer opened a specific thread (unexpected constraint, unclear tradeoff, important edge case), follow that thread before moving on. Depth beats breadth when the user signals something important.
 - **Cover all relevant categories** — after each round, check which categories haven't been touched. Skip categories that clearly don't apply to the topic (e.g., a CLI script doesn't need UI/UX questions).
 - **Avoid obvious questions** — never ask "what is the goal?" or "who are the users?" without more depth
-- **Continue until complete** — keep going until all critical areas are covered (typically 5–8 rounds)
+- **Hard stop at 8 rounds** — after 8 rounds of questions, stop interviewing and proceed to Step 3 regardless. If critical areas remain uncovered, note them as open questions in the spec. Do not exceed 8 rounds under any circumstance.
 
 ### Question Categories
 
@@ -91,7 +93,7 @@ DO NOT re-evaluate. Follow the decision made in Step 1:
 3. **Merge rules:**
    - **APPEND**: Add at the end of the matching section
    - **REVISE**: Replace the outdated content directly — do not keep the old text alongside the new. The spec should reflect the current state, not the history of changes. Git blame shows history.
-   - **NEW_SECTION**: Insert before the last section (typically "Open Questions") — do not scatter new sections randomly
+   - **NEW_SECTION**: Insert before the last section of the document. If the document ends with an "Open Questions" section, insert before it; if no such section exists, append at the end of the file. Do not scatter new sections randomly.
    - **Untouched content**: Any existing content NOT covered by the interview must remain exactly as-is — do not reformat, rephrase, or reorganize it
    - Use `Edit` tool for section-by-section targeted updates. **Do NOT use `Write` to overwrite the entire file.**
 

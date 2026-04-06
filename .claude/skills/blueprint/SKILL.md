@@ -84,6 +84,13 @@ python .claude/skills/blueprint/scripts/validate_blueprint_doc.py ./blueprint-<t
 
 If validation fails, fix the document and run again. This script checks structure only (required sections, step fields, and implementation/workflow section presence) — it does not check content quality.
 
+If the script is not found (e.g., first install or missing file), skip script validation and manually verify the Phase 2 completeness checklist instead:
+- [ ] Every workflow step has success criteria + validation method + failure handling
+- [ ] LLM vs script responsibility table is filled
+- [ ] Folder structure is defined
+- [ ] "스킬 생성 규칙" section is present and mentions `skill-creator`
+- [ ] No table cell left blank or "TBD"
+
 ### Phase 3: Review
 
 After presenting the document, summarize the key design decisions made during the interview:
