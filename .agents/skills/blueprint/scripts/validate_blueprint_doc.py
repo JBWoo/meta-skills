@@ -46,9 +46,21 @@ REQUIRED_WORKFLOW_SUBHEADERS = [
 REQUIRED_IMPLEMENTATION_SUBHEADERS = [
     "### Recommended Folder Structure",
     "### AGENTS.md Responsibilities",
+    "### Custom Agent Definitions",
     "### Skill and Script Inventory",
+    "### AGENTS.md 작성 원칙",
     "### Skill Creation Rules",
     "### Core Artifacts",
+]
+
+REQUIRED_AGENTS_GUIDE_SNIPPETS = [
+    "| 원칙 | 핵심 | 자기 검증 테스트 |",
+    "구현 전에 생각하라",
+    "단순함 우선",
+    "수술적 변경",
+    "목표 중심 실행",
+    "**트레이드오프**:",
+    "**이 가이드라인이 잘 작동하고 있다면:**",
 ]
 
 REQUIRED_STEP_FIELDS = [
@@ -74,7 +86,8 @@ REQUIRED_STATES = [
 ]
 
 
-STEP_HEADING_RE = re.compile(r"^#### Step \d+:", flags=re.MULTILINE)
+# Matches Step 01:, Step 2A:, Step 2M:, Step 03: etc.
+STEP_HEADING_RE = re.compile(r"^#### Step (\d+)([A-Za-z]?):", flags=re.MULTILINE)
 FENCED_BLOCK_RE = re.compile(r"```.*?```", flags=re.DOTALL)
 CHECKLIST_ITEM_RE = re.compile(r"^- \[ \] .+$", flags=re.MULTILINE)
 
@@ -95,14 +108,43 @@ def assert_in_order(text: str, items: list[str], issues: list[str], label: str) 
         cursor = idx
 
 
-def split_step_blocks(text: str) -> list[str]:
+def split_step_blocks(text: str) -> list[tuple[str, str]]:
+    """Return list of (step_label, block_text) tuples."""
     matches = list(STEP_HEADING_RE.finditer(text))
-    blocks: list[str] = []
+    blocks: list[tuple[str, str]] = []
     for i, match in enumerate(matches):
         start = match.start()
         end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
-        blocks.append(text[start:end])
+        label = f"Step {match.group(1)}{match.group(2)}"
+        blocks.append((label, text[start:end]))
     return blocks
+
+
+def check_step_continuity(blocks: list[tuple[str, str]], issues: list[str]) -> None:
+    """Check that base step numbers are continuous (1, 2, 3...).
+
+    Variants like 2A, 2B, 2M are allowed and don't break continuity.
+    """
+    if not blocks:
+        return
+
+    base_numbers: list[int] = []
+    for label, _ in blocks:
+        match = re.match(r"Step (\d+)", label)
+        if match:
+            num = int(match.group(1))
+            if num not in base_numbers:
+                base_numbers.append(num)
+
+    base_numbers.sort()
+    for i in range(len(base_numbers) - 1):
+        if base_numbers[i + 1] - base_numbers[i] > 1:
+            gap_start = base_numbers[i]
+            gap_end = base_numbers[i + 1]
+            issues.append(
+                f"Step number gap: Step {gap_start} -> Step {gap_end} "
+                f"(missing Step {gap_start + 1})"
+            )
 
 
 def validate(path: Path) -> tuple[bool, list[str]]:
@@ -141,17 +183,22 @@ def validate(path: Path) -> tuple[bool, list[str]]:
     if len(step_blocks) < 2:
         issues.append("Require at least two workflow steps using '#### Step NN:' headings")
     else:
-        for idx, block in enumerate(step_blocks, start=1):
+        for label, block in step_blocks:
             for field in REQUIRED_STEP_FIELDS:
                 if field not in block:
-                    issues.append(f"Missing step field in Step {idx:02d}: {field}")
+                    issues.append(f"Missing step field in {label}: {field}")
+        check_step_continuity(step_blocks, issues)
 
     if "output/step01_" not in text_no_code:
         issues.append("Expected at least one intermediate artifact path using output/stepNN_<name>.<ext>")
 
+    for item in REQUIRED_AGENTS_GUIDE_SNIPPETS:
+        if item not in text_no_code:
+            issues.append(f"Missing AGENTS.md guidance content: {item}")
+
     checklist_count = len(CHECKLIST_ITEM_RE.findall(text_no_code))
-    if checklist_count < 6:
-        issues.append("Validation checklist should contain at least 6 unchecked items")
+    if checklist_count < 8:
+        issues.append("Validation checklist should contain at least 8 unchecked items")
 
     if "skill-creator" not in text_no_code:
         issues.append("Missing required skill-creator usage rule")

@@ -56,7 +56,19 @@ Use the exact section headers below so `scripts/validate_blueprint_doc.py` can v
 ## 2. Workflow Definition
 
 ### End-to-End Flow
-`[Input] -> [Step 01] -> [Step 02] -> ... -> [Final Output]`
+
+분기가 2개 이상이면 Mermaid를 사용한다. 단순 선형 흐름은 텍스트도 가능.
+
+```mermaid
+flowchart TD
+    A[Input] --> B[Step 01: Name]
+    B --> C{Branch condition}
+    C -->|Path A| D[Step 02A: Name]
+    C -->|Path B| E[Step 02B: Name]
+    D --> F[Step 03: Name]
+    E --> F
+    F --> G[Final Output]
+```
 
 ### LLM vs Code Boundary
 | LLM handles | Code handles |
@@ -172,6 +184,26 @@ Use the exact section headers below so `scripts/validate_blueprint_doc.py` can v
 |---|---|---|---|
 | [skill-name] | skill/script | [responsibility] | [when it is used] |
 
+### AGENTS.md 작성 원칙
+
+이 시스템의 AGENTS.md는 아래 4가지 원칙을 따라 작성한다. 규칙 나열이 아닌 원칙 중심으로, 50줄 이내로 압축한다.
+
+| 원칙 | 핵심 | 자기 검증 테스트 |
+|------|------|-----------------|
+| **구현 전에 생각하라** | 가정을 명시하고, 불명확하면 멈추고 물어라 | "내 가정을 명시적으로 진술했는가?" |
+| **단순함 우선** | 요청한 것만 구현, 추측성 추상화 금지 | "시니어 엔지니어가 '너무 복잡하다'고 할까?" |
+| **수술적 변경** | 건드려야 할 것만 건드리고, 기존 스타일에 맞출 것 | "모든 변경 줄이 요청에 직접 연결되는가?" |
+| **목표 중심 실행** | 성공 기준 정의 → 검증 루프 | "성공/실패를 객관적으로 판단할 수 있는가?" |
+
+**트레이드오프**: [이 가이드라인의 편향 방향 명시. 예: "신중함 > 속도. 단순 작업에는 판단력을 사용하라."]
+
+**이 가이드라인이 잘 작동하고 있다면:**
+- [기대 효과 1]
+- [기대 효과 2]
+- [기대 효과 3]
+
+> 상세 원칙은 `references/design-principles.md` › "AGENTS.md / CLAUDE.md 작성 원칙" 참조.
+
 ### Skill Creation Rules
 
 > 이 설계서에 정의된 모든 스킬은 구현 시 반드시 `skill-creator` 스킬(`/skill-creator`)을 사용하여 생성할 것.
@@ -198,5 +230,20 @@ skill-creator가 보장하는 규격:
 - [ ] Human review points are explicit where needed
 - [ ] Codex skill paths use `.agents/skills/...`
 - [ ] Codex custom subagents use `.codex/agents/*.toml`
+- [ ] `Custom Agent Definitions` section is present and uses `.codex/agents/*.toml` paths
+- [ ] `AGENTS.md 작성 원칙` section is present with 4 principles + self-verification tests + tradeoff + success metrics
 - [ ] Skill additions or updates mention `skill-creator`
+
+## 5. Maintenance
+
+This document is a **pre-implementation plan**. When the design changes during implementation:
+
+- **Minor changes** (parameters, filenames): reflect only in implementation code
+- **Structural changes** (step add/remove, agent structure change): update the relevant section and record the reason in `### Change Log`
+- **Scope changes** (input/output change, new features): re-review the document or write a new blueprint
+
+Change log format:
+| Date | Change | Reason |
+|---|---|---|
+| YYYY-MM-DD | [what changed] | [why] |
 ```

@@ -1,6 +1,6 @@
 interface:
   display_name: "Reflect"
-  short_description: "Session wrap-up with actionable follow-through"
-  default_prompt: "Use $reflect to inspect this Codex session, summarize the changes, and identify which docs, learnings, and next actions actually matter."
+  short_description: "Wrap up a session or capture a confirmed fix"
+  default_prompt: "Use $reflect to wrap up this work session, or capture the concrete fix that was just confirmed."
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true

@@ -1,266 +1,281 @@
 ---
 name: reflect
-description: A skill for wrapping up a session — summarizing work done, updating docs, and logging learnings. Trigger on "/reflect", "reflect", "session reflect", "end session", "세션 정리", "오늘 한 거 정리", or "마무리". Use this skill at the end of any substantial work session (30+ minutes), when the user says "done", "wrap up", "what did we do", or when a significant feature or milestone is completed — even if they don't explicitly ask for reflection.
+description: >-
+  Session wrap-up and fix-learning capture skill. Use when the user explicitly
+  asks for "/reflect", "reflect", "session reflect", "end session", "세션 정리",
+  "오늘 한 거 정리", or "마무리", or when the user clearly confirms that a
+  concrete issue from the current coding session is fixed ("고쳐졌다",
+  "해결됐다", "it's fixed", "working now", "that worked", "problem solved").
+  Explicit invocation runs Full Reflect; confident fix confirmation runs Quick
+  Reflect.
 ---
 
-# reflect
+# Reflect
 
-A session wrap-up skill that runs 4 analysis agents in parallel, then validates with a duplicate-checker, and lets you choose which actions to take.
+Wrap up a session or capture one confirmed fix as reusable project knowledge.
 
-## Execution Flow
+- Default architecture: single agent, inline analysis, no task-based subagents
+- Explicit invocation runs **Full Reflect**
+- Confident fix confirmation runs **Quick Reflect**
+- When uncertain, prefer doing less: no-op instead of saving weak learnings
 
+## Mode Selection (first)
+
+Choose the mode before doing any work.
+
+- **Full Reflect**: the user explicitly asks for `"/reflect"`, `reflect`, `session reflect`, `end session`, `세션 정리`, `오늘 한 거 정리`, or `마무리`
+- **Quick Reflect**: the user clearly confirms that a concrete issue from the current coding session is now fixed
+
+Quick Reflect requires all of the following:
+
+1. The recent conversation contains a real bug, implementation issue, or debugging thread
+2. The user's latest message is a concrete fix confirmation, not casual acknowledgment
+3. The repo state or recent turns provide enough evidence to explain the problem and fix
+4. At least one reusable learning can be stated cleanly
+
+If those conditions are not met, do not save anything.
+
+If both modes seem possible, explicit invocation wins and you run **Full Reflect**.
+
+## Storage Model
+
+- Canonical records live in `docs/solutions/<category>/<id>.md`
+- `docs/solutions/index.json` is a derived artifact
+- Never append blindly to `index.json`; rebuild it from solution docs after every write
+- Categories: `bug-fix`, `pattern`, `tool-usage`, `architecture`, `workflow`
+- Keep frontmatter fields consistent across all solution docs
+
+## First Run Initialization
+
+If `docs/solutions/index.json` does not exist:
+
+1. Create `docs/solutions/`
+2. Create subdirectories: `bug-fix/`, `pattern/`, `tool-usage/`, `architecture/`, `workflow/`
+3. Create `docs/solutions/index.json` with `[]`
+4. Briefly note the initialization only when reflection output is already being shown
+
+## Quick Reflect
+
+Purpose: capture one high-signal resolved issue without turning every "fixed" into a save.
+
+### 1. Run the Eligibility Gate
+
+- Review the last 5-10 turns plus relevant repo context
+- Require a resolved problem plus a concrete cause or fix
+- Reject casual confirmations, speculative ideas, or vague "it works now" statements with no evidence
+- Save at most **one** learning in Quick Reflect
+
+If the eligibility gate fails during implicit invocation:
+
+- do not create or modify files
+- do not emit a reflection block
+
+### 2. Extract One Candidate Learning
+
+Capture:
+
+- concise title
+- category
+- 2-4 tags
+- `Problem`
+- `Solution`
+- `Key Insight`
+- optional `Context`
+
+### 3. Check Overlap
+
+Read `docs/solutions/index.json`.
+
+For the candidate learning:
+
+- compare tags and title keywords against existing entries
+- if there is a likely match, read the existing solution doc before deciding
+- classify as `NEW`, `REINFORCE`, or `SUPERSEDE`
+
+### 4. Save the Learning
+
+For all write paths below, rebuild `index.json` after the document updates.
+
+**NEW**
+
+- Generate ID `sol-YYYYMMDD-NNN`
+- Write `docs/solutions/<category>/<id>.md`
+- Set:
+  - `confidence: 0.50`
+  - `created: YYYY-MM-DD`
+  - `last_reinforced: YYYY-MM-DD`
+  - `reinforcement_count: 0`
+  - `supersedes: null`
+  - `superseded_by: null`
+
+**REINFORCE**
+
+- Read the existing solution doc
+- Update frontmatter:
+  - `confidence += 0.15` with cap `0.95`
+  - `last_reinforced = today`
+  - `reinforcement_count += 1`
+- Append to `## Context` only when there is genuinely new information
+
+**SUPERSEDE**
+
+- Update the old doc with `superseded_by: <new-id>`
+- Lower old confidence to `min(current_confidence, 0.25)`
+- Create the new doc with `supersedes: <old-id>` and `superseded_by: null`
+
+### 5. Rebuild `index.json`
+
+Read all solution docs under `docs/solutions/**` and write a JSON array containing:
+
+- `id`
+- `title`
+- `tags`
+- `category`
+- `confidence`
+- `created`
+- `last_reinforced`
+- `reinforcement_count`
+- `supersedes`
+- `superseded_by`
+- `related`
+
+Sort by:
+
+1. `confidence` descending
+2. `last_reinforced` descending
+3. `id` ascending
+
+### 6. Confirm Briefly
+
+Use a short confirmation only when reflection output is appropriate:
+
+- `📚 Saved: [title] (new, confidence: 0.50)`
+- `📚 Reinforced: [title] (0.50 -> 0.65)`
+- `📚 Superseded: [old-id] -> [new-id]`
+
+## Full Reflect
+
+Purpose: explicit wrap-up after substantial work.
+
+### 1. Inspect Session State
+
+Collect concrete evidence first:
+
+- current workspace structure
+- files changed in this session from repo state and recent turns
+- relevant documentation files for the work just completed
+- existing `docs/solutions/index.json` entries, if present
+
+Compress this into a short internal `PROJECT_STATE` summary before moving on.
+
+### 2. Produce Four Analysis Buckets Inline
+
+Analyze the session in four buckets:
+
+1. **Docs to update**
+2. **Automation ideas**
+3. **Learnings**
+4. **Next actions**
+
+Rules:
+
+- base every item on actual work performed
+- merge duplicates across buckets
+- drop vague or low-value items
+- keep learnings to 0-3 high-signal items
+- keep next actions to 1-5 concrete tasks
+
+### 3. Apply Changes Carefully
+
+**Learnings**
+
+- Save using the exact same `NEW / REINFORCE / SUPERSEDE` pipeline as Quick Reflect
+- Rebuild `docs/solutions/index.json` after writes
+
+**Doc updates**
+
+- Only target `README.md`, `CHANGELOG.md`, and `docs/**/*.md`
+- Exclude `docs/solutions/**`
+- Classify each edit as `APPEND`, `REVISE`, or `NEW_SECTION`
+- Keep edits narrow and factual
+- Never modify agent/config files:
+  - `CLAUDE.md`
+  - `AGENTS.md`
+  - `SKILL.md`
+  - `GEMINI.md`
+  - anything under `.claude/`
+  - anything under `.agents/`
+  - anything under `.codex/`
+
+**Automation ideas**
+
+- Report only
+- Do not scaffold code, skills, hooks, or scripts during reflection
+
+### 4. Scan for Stale Learnings
+
+After rebuilding `index.json`, flag stale entries for awareness:
+
+- stale = `last_reinforced` older than 60 days
+- report stale entries only
+- do not auto-decay, auto-delete, or archive anything
+
+### 5. Report
+
+Present results in this order:
+
+```text
+📚 학습 저장
+  - [NEW/REINFORCE/SUPERSEDE] [id] [title] (confidence: X.XX)
+
+⏳ Stale 학습
+  - [id] [title] (last reinforced: YYYY-MM-DD)
+
+📄 문서 업데이트
+  - [filename]: [what changed]
+
+⚡ 자동화 아이디어
+  - [suggestion]
+
+➡️ 후속 작업
+  - [priority] [task]
 ```
-┌─────────────────────────────────────────────────────┐
-│  Step 1: Check current project state (inline)        │
-├─────────────────────────────────────────────────────┤
-│  Step 2: Phase 1 — Launch 4 agents IN PARALLEL       │
-│     ┌──────────────┬──────────────┐                  │
-│     │ doc-updater  │ automation-  │                  │
-│     │              │ scout        │                  │
-│     ├──────────────┼──────────────┤                  │
-│     │ learning-    │ followup-    │                  │
-│     │ extractor    │ suggester    │                  │
-│     └──────────────┴──────────────┘                  │
-├─────────────────────────────────────────────────────┤
-│  Step 3: Phase 2 — duplicate-checker (sequential)    │
-├─────────────────────────────────────────────────────┤
-│  Step 4: Consolidate + user selection                │
-└─────────────────────────────────────────────────────┘
-```
 
+Omit empty sections except `후속 작업`, which may say `없음`.
+
+## Solution Document Template
+
+```yaml
+---
+id: sol-YYYYMMDD-NNN
+title: "concise title"
+tags: [tag1, tag2, tag3]
+category: bug-fix | pattern | tool-usage | architecture | workflow
+confidence: 0.50
+created: YYYY-MM-DD
+last_reinforced: YYYY-MM-DD
+reinforcement_count: 0
+supersedes: null
+superseded_by: null
+related: []
 ---
 
-## Step 1: Check Current Project State
+## Problem
+What was the problem?
 
-Before launching any agents, gather context inline:
+## Solution
+How was it solved?
 
-- List files in the current working directory
-- Note any files created or modified in this session (check conversation history)
-- Produce a concise `PROJECT_STATE` string summarizing the session activity
+## Key Insight
+What general lesson should be reused?
 
-This `PROJECT_STATE` will be passed as context to each Phase 1 agent.
-
----
-
-## Step 2: Phase 1 — Parallel Analysis
-
-Launch all 4 agents in a single response — running them sequentially would take 4x longer, and since the agents don't depend on each other's results, parallel execution is both faster and produces better analysis because each agent works from the same unbiased project state.
-
-Use the Agent tool with `subagent_type: "general-purpose"` for each:
-
-### Task 1 — doc-updater
-
-```
-subagent_type: general-purpose
-prompt: |
-  You are a documentation specialist performing a focused analysis.
-
-  PROJECT STATE:
-  {PROJECT_STATE}
-
-  Your job: Review existing documentation files (README.md, any .md files
-  in the project) and identify what needs updating based on the session's work.
-
-  Steps:
-  1. Use Glob to find all .md files in the project
-  2. Read the most relevant ones (README.md first, then other docs)
-     - If CLAUDE.md is present, read it for context only — do NOT suggest updates to it.
-       CLAUDE.md is an agent instruction file, not a documentation target.
-  3. Compare their content against the PROJECT STATE
-
-  Return ONLY a structured list:
-  ## doc-updater results
-  - File: [filename] | Section: [section] | Update: [what to add/change]
-  (If nothing needs updating, say "No doc updates needed.")
+## Context
+Project-specific background when it adds value.
 ```
 
-### Task 2 — automation-scout
+## Notes
 
-```
-subagent_type: general-purpose
-prompt: |
-  You are an automation specialist performing a focused analysis.
-
-  PROJECT STATE:
-  {PROJECT_STATE}
-
-  Your job: Identify repeating patterns in this session's work that could be automated
-  as a skill, script, or CLAUDE.md hook.
-
-  Steps:
-  1. Review the PROJECT STATE for repeated actions or manual steps
-  2. Check .claude/skills/ AND ~/.claude/skills/ to avoid suggesting skills that already exist
-  3. Propose specific automations
-
-  Return ONLY a structured list:
-  ## automation-scout results
-  - Pattern: [what was repeated] | Type: [skill/script/hook] | Suggestion: [how to automate]
-  (If nothing to automate, say "No automation opportunities found.")
-```
-
-### Task 3 — learning-extractor
-
-```
-subagent_type: general-purpose
-prompt: |
-  You are a learning specialist performing a focused analysis.
-
-  PROJECT STATE:
-  {PROJECT_STATE}
-
-  Your job: Extract and summarize the key learnings from this session.
-
-  Steps:
-  1. Review what was built, fixed, or explored in this session
-  2. Identify new concepts, tools, patterns, or techniques encountered
-  3. Note connections to existing knowledge
-
-  Return ONLY a structured list:
-  ## learning-extractor results
-  - Learned: [concept/tool/pattern] | Detail: [brief explanation] | Explore more: [yes/no]
-  (If nothing new was learned, say "No new learnings identified.")
-```
-
-### Task 4 — followup-suggester
-
-```
-subagent_type: general-purpose
-prompt: |
-  You are a task planning specialist performing a focused analysis.
-
-  PROJECT STATE:
-  {PROJECT_STATE}
-
-  Your job: Identify what should be done next based on this session's work.
-
-  Steps:
-  1. Review what was completed and what was left unfinished
-  2. Identify natural follow-up tasks or improvements
-  3. Prioritize by impact
-
-  Return ONLY a structured list:
-  ## followup-suggester results
-  - Task: [what to do] | Priority: [high/medium/low] | Reason: [why]
-  (List 3–5 items maximum.)
-```
-
----
-
-## Step 3: Phase 2 — Validation (sequential, after all Phase 1 agents complete)
-
-After all 4 Phase 1 agents return, collect their outputs into a single string:
-
-```
-PHASE_1_RESULTS = """
-[paste doc-updater output here]
-
-[paste automation-scout output here]
-
-[paste learning-extractor output here]
-
-[paste followup-suggester output here]
-"""
-```
-
-Then launch ONE more agent. **Before submitting the prompt, replace `{PHASE_1_RESULTS}` with the actual collected output text from all 4 agents** — do not pass the literal placeholder string.
-
-```
-subagent_type: general-purpose
-prompt: |
-  You are a duplicate checker. Review the following 4 analysis results and remove
-  or merge any overlapping suggestions.
-
-  {PHASE_1_RESULTS}
-
-  Rules:
-  - Full duplicate (same suggestion from 2+ agents): keep the more detailed one, remove the rest
-  - Partial overlap (similar intent): merge into a single, better suggestion and note the source
-  - Unique items: keep as-is
-
-  Return a single clean consolidated list organized by category:
-  📄 Docs to update
-  ⚡ Automation ideas
-  📚 Learnings
-  ➡️  Next actions
-```
-
----
-
-## Step 4: Consolidate + User Selection
-
-Present the duplicate-checked results clearly, then build a dynamic options list based on what the agents actually found:
-
-- Include **"문서 업데이트"** only if doc-updater returned at least one update suggestion
-- Include **"자동화 생성"** only if automation-scout returned at least one suggestion
-- Include **"학습 기록 저장"** only if learning-extractor returned at least one learning
-- Always include **"건너뛰기"**
-
-Then call `AskUserQuestion` with the relevant options and `multiSelect: true`. Example (all options present):
-
-```json
-AskUserQuestion({
-  "questions": [{
-    "question": "세션 정리가 완료됐습니다. 어떤 작업을 실행할까요?",
-    "header": "작업 선택",
-    "options": [
-      {"label": "문서 업데이트", "description": "CLAUDE.md 또는 README에 변경 사항 반영"},
-      {"label": "자동화 생성", "description": "반복 패턴을 스킬 또는 스크립트로 만들기"},
-      {"label": "학습 기록 저장", "description": "오늘 배운 것을 노트 파일에 저장"},
-      {"label": "건너뛰기", "description": "결과 확인만 — 별도 작업 없음"}
-    ],
-    "multiSelect": true
-  }]
-})
-```
-
-Omit options that aren't applicable (e.g. if doc-updater found nothing, remove "문서 업데이트"). Always keep "건너뛰기".
-
-Execute only the selected actions. Execution instructions for each:
-
-### 문서 업데이트
-Use the `Edit` tool to apply the doc-updater's suggestions to the target files.
-- Before editing, classify each suggested change as `APPEND`, `REVISE`, or `NEW_SECTION`
-- `APPEND`: add new information to the matching section
-- `REVISE`: replace outdated or inaccurate text directly so the document reflects the current state cleanly
-- `NEW_SECTION`: add a new section only when no existing section is a good fit
-- Do NOT rewrite unrelated sections
-- Tell the user what was updated and in which file
-
-### 자동화 생성
-For each automation suggestion:
-1. Determine type: **skill** → use `skill-creator` (required); if not installed, tell the user to install it first — do not create SKILL.md manually; **script** → write to `scripts/<name>.sh` or `scripts/<name>.py`; **hook** → add to `.claude/settings.json` under `hooks`
-2. Keep it minimal — implement only what was identified in the session
-3. Tell the user what was created and where
-
-### 학습 기록 저장
-Append learnings to `~/.claude/learnings.md` (create if it doesn't exist). Format:
-
-```markdown
-## YYYY-MM-DD — [project name]
-- [concept/tool/pattern]: [brief explanation]
-- [concept/tool/pattern]: [brief explanation]
-```
-
-**Size check:** After appending, count the total number of `##` date sections. If there are more than 50 sections, add a note at the top:
-```
-> ⚠️ This file has grown large. Consider archiving entries older than 90 days to `~/.claude/learnings-archive.md`.
-```
-
-Tell the user the file path and what was added.
-
-### 건너뛰기
-Do nothing. Confirm to the user that the reflection is complete.
-
----
-
-## Quick Reference
-
-**Use when:**
-- After a long work session (30+ minutes)
-- Before switching to a different project
-- After completing a significant feature or milestone
-
-**Skip when:**
-- Short Q&A session with no file changes
-- Only read code, made no modifications
-- Already wrapped up manually
+- Best after meaningful implementation work
+- Quick Reflect should stay conservative; false positives are worse than missed saves
+- Prefer concrete repo evidence over memory
+- Keep the storage schema stable so future reinforcement remains cheap

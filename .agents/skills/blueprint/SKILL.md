@@ -22,21 +22,22 @@ Conduct a short interview about the task the user wants to automate, then produc
 
 ### 1. Assess Gaps First
 
-Check the four areas below first, and ask only about what is missing.
+Check the three areas below first, and ask only about what is missing. Skip to Phase 2 if all sufficiency criteria are met.
 
-| Area | Minimum items to confirm |
+| Area | Sufficiency criteria (all must be answerable) |
 |---|---|
-| Goal and success criteria | What does completion look like, what counts as failure |
-| Task procedure | Input, output, branch conditions, human intervention points |
-| Execution environment | File formats, APIs, external tools, storage location |
-| Constraints | Accuracy, cost, speed, security, permissions, operational scope |
+| Goal and success criteria | (1) Observable completion condition exists (2) Failure state can be identified |
+| Task procedure | (1) Input format and source are specified (2) Output format and destination are specified (3) Branch conditions have clear decision criteria |
+| Tools and constraints | (1) Tools/APIs are identified or can be recommended (2) Technical constraints (API limits, format restrictions) are known |
+
+> **Agent organization** (single vs multi-agent) is NOT an interview topic. The agent decides this in Phase 2 based on `design-principles.md` › "Default Architecture" rules, and explains the rationale in Phase 4.
 
 Interview rules:
 
 - Ask at most 3 questions per turn.
 - In default mode, ask directly in plain text messages.
 - For items the user does not know, apply a reasonable default and state that assumption explicitly in the document.
-- Finish within 3 rounds at most; after that, note assumptions and risks and proceed to the writing phase.
+- **Maximum 4 turns total.** If gaps remain after 4 turns, apply reasonable defaults, document them as assumptions, and proceed to the writing phase.
 
 ### 2. Write the Blueprint
 
@@ -57,11 +58,13 @@ If you want a calibration sample for specificity and decision framing, also skim
 | What is in / out of scope | `### Out of Scope` + `### Scope` |
 | Input format, output format, trigger | `### Inputs` + `### Outputs` + `### End-to-End Flow` |
 | Technical constraints, API limits | `### Constraints` |
+| Domain-specific terminology | `### Terms` |
 | Step-by-step processing, branch conditions | `#### Step NN` blocks + `### State Model` |
 | Agent judgment vs script processing | `### LLM vs Code Boundary` |
 | Tools / APIs used | `### Skill and Script Inventory` |
-| Single vs multi-agent | `### Recommended Folder Structure` + `### AGENTS.md Responsibilities` + `### Custom Agent Definitions` |
 | Failure conditions, retry expectations | `#### Step NN` → `7) Failure Handling:` |
+
+> **Agent decides these sections** (no interview needed): `### Recommended Folder Structure`, `### AGENTS.md Responsibilities`, `### Custom Agent Definitions`, `### AGENTS.md 작성 원칙`, `### Core Artifacts`. These are filled by the agent based on synthesized interview findings and design-principles.md rules.
 
 Writing rules:
 
@@ -100,11 +103,21 @@ python ~/.agents/skills/blueprint/scripts/validate_blueprint_doc.py ./blueprint-
 
 ### 4. Review
 
-Show the user the document path and a brief summary of key decisions, then confirm whether any changes are needed.
+Show the user the document path and summarize the key design decisions:
+
+- Agent structure choice (single vs multi) and the reason
+- Any tradeoffs locked in (e.g., "LLM judges step X because rule-based detection was too fragile")
+- Any constraints that shaped the design
+- Any assumptions applied (from "I don't know" responses or turn limit)
+
+Then ask: "Do these decisions match your intent? Let me know if there's anything you'd like to change."
+
+If user says "looks fine" / "not sure, just proceed" — confirm the specific assumptions that will be locked in: "The following assumptions will be finalized: [list]. Changing these after implementation is costly, so please review now." Then proceed.
 
 ## Notes
 
 - Document structure follows English headers from the template — the validation script operates based on those headers.
+- All design documents must include an **AGENTS.md 작성 원칙** section with the 4 principles (Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution), each with a self-verification test, plus a tradeoff statement and success metrics. See `references/design-principles.md` › "AGENTS.md / CLAUDE.md 작성 원칙".
 - All design documents must have a **skill-creator usage requirement** section — every skill defined in the document must be created via `skill-creator` at implementation time, regardless of whether skill creation is a primary focus. See `references/design-principles.md` › "Skill Creation Standards" for exact wording. The validator checks for the literal string `skill-creator`.
 - When designing a new skill folder, write paths relative to `.agents/skills/<skill-name>/`.
 - When designing a custom subagent, write paths relative to `.codex/agents/<agent-name>.toml` and include `name`, `description`, and `developer_instructions`.

@@ -11,7 +11,7 @@ Claude Code와 Codex에서 에이전트 시스템 설계, 요구사항 구체화
 |---|---|---|---|
 | `blueprint` | 자동화/에이전트 시스템 설계 문서 작성 — 구조 검증 스크립트 포함 | `blueprint` 스킬 | `blueprint` 또는 `$blueprint` |
 | `deep-dive` | 다단계 인터뷰를 통해 상세 스펙 문서 생성 | `deep-dive` 스킬 | `deep-dive` 또는 `$deep-dive` |
-| `reflect` | 작업 세션 요약, 문서 업데이트 포인트 식별, 다음 액션 정리 | `reflect` 스킬 | `reflect` 또는 `$reflect` |
+| `reflect` | 세션 마무리, 문서 반영, 학습 저장, 후속 액션 정리. 구체적 fix 확인 시 빠른 학습 캡처 포함 | `reflect` 스킬 | `reflect` 또는 `$reflect` |
 | `autoresearch` | 스킬 자동 최적화 (반복 실행 + 평가 + 프롬프트 변형) — 개선된 스킬, `results.json`, `changelog.md`, 실시간 HTML 대시보드 생성 | `autoresearch` 스킬 | `autoresearch` 또는 `$autoresearch` |
 
 ## 스킬 워크플로우
@@ -28,13 +28,14 @@ blueprint → deep-dive → [구현] → autoresearch → reflect
 | 2. 스펙 | `deep-dive` | 요구사항 구체화가 필요할 때 — 구조화된 인터뷰로 스펙 문서 생성 |
 | 3. 구현 | *(직접 코딩)* | 블루프린트와 스펙을 바탕으로 시스템 구축 |
 | 4. 최적화 | `autoresearch` | 스킬 동작 확인 후 — 자동 평가 루프로 반복 개선 |
-| 5. 마무리 | `reflect` | 작업 세션 종료 시 — 요약, 학습 기록, 후속 액션 정리 |
+| 5. 마무리 | `reflect` | 작업 세션 종료 시 — 요약, 문서 반영, 학습 저장, 후속 액션 정리 |
 
 **상황별 간단 패턴:**
 - 새 프로젝트: `blueprint` → `deep-dive` → 구현 → `autoresearch` → `reflect`
 - 중간 기능 추가: `deep-dive` → 구현 → `reflect`
 - 스킬 최적화만: `autoresearch` 단독 실행
 - 세션 마무리만: `reflect` 단독 실행
+- 버그 수정 직후: 구현 → 구체적 fix 확인 문맥에서 `reflect`의 빠른 학습 캡처
 
 ## 디렉토리 구조
 
@@ -140,7 +141,7 @@ cp -r ./.claude/skills/reflect      ~/.claude/skills/
 - `blueprint`는 Codex 호환 문서 템플릿, 설계 원칙, 구조 검증 스크립트를 포함합니다.
 - `autoresearch`는 Claude Code와 Codex 양쪽에서 동일한 기능을 제공합니다. Codex에서는 명시적 위임 승인이 있는 기본 순차 실행 모델을 따릅니다.
 - Codex 배포에는 각 스킬 폴더에 선택적 UI 메타데이터를 담은 `agents/openai.yaml` 파일이 포함됩니다.
-- 공개 배포용 기본 정책으로 `blueprint`, `deep-dive`는 암묵 호출을 허용하고, `reflect`, `autoresearch`는 명시 호출(`$reflect`, `$autoresearch`)만 허용합니다.
+- 공개 배포용 기본 정책으로 `blueprint`, `deep-dive`는 암묵 호출을 허용하고, `reflect`는 명시 호출과 구체적 fix confirmation 문맥에서의 제한적 암묵 호출을 함께 허용합니다. `autoresearch`는 명시 호출(`$autoresearch`)만 허용합니다.
 - Codex의 커스텀 서브에이전트는 스킬 폴더가 아니라 `.codex/agents/*.toml`에 정의해야 합니다.
 - 이 저장소는 커스텀 서브에이전트를 아직 포함하지 않으므로 `.codex/` 디렉터리는 기본적으로 체크인하지 않습니다. 필요할 때만 `.codex/agents/`를 추가하면 됩니다.
 
