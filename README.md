@@ -1,3 +1,18 @@
+# Meta Skills — working fork
+
+Fork of [byungjunjang/jangpm-meta-skills](https://github.com/byungjunjang/jangpm-meta-skills),
+AI PM [Jongbum Woo](https://www.jongbumwoo.com) 가 daily 워크플로의 일부로
+사용·운영하는 메타 스킬 모음.
+
+> **왜 이 fork 를 유지하는가** — Claude Code 가 새 작업을 받았을 때 *바로 코드부터 짜는*
+> 대신, 설계(`blueprint`) → 요구사항 인터뷰(`deep-dive`) → 구현 → 자기개선(`autoresearch`)
+> → 학습 저장(`reflect`) 의 사이클을 강제하는 워크플로 자산. video-pipeline, cv-source
+> 등 production 워크플로에 실제 wiring 되어 있음.
+
+링크: [www.jongbumwoo.com](https://www.jongbumwoo.com)
+
+---
+
 # Jangpm Meta Skills (Claude Code & Codex용)
 
 Claude Code와 Codex에서 에이전트 시스템 설계, 요구사항 구체화, 세션 마무리, 스킬 자동 최적화를 위한 메타 스킬 모음.
